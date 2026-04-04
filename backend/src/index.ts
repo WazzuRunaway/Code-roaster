@@ -1,15 +1,36 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import submissionRoutes from './routes/submissions';
 
 dotenv.config();
 const app = express();
 
-// TODO: Configure CORS for localhost + VM
-app.use(cors());
+// CORS: allow both localhost (dev) and VM IP (production)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://10.93.24.228',
+  'http://10.93.24.228:5173',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+// Routes
+app.use('/api', submissionRoutes);
 
-// TODO: Register routes
+// Health check
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => console.log(`🔥 Server running on port ${PORT}`));
