@@ -8,13 +8,26 @@ datasource db {
 }
 
 model Submission {
-  id             String   @id @default(uuid())
-  code           String   @db.Text
+  id             String    @id @default(uuid())
+  code           String    @db.Text
   language       String
-  roast          String   @db.Text
-  solution       String   @db.Text
-  spiciness      String   @default("medium")
-  spaghettiScore Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  roast          String    @db.Text
+  solution       String    @db.Text
+  spiciness      String    @default("medium")
+  spaghettiScore Int       @default(0)
+  authorName     String?   @db.VarChar(50)
+  isPublic       Boolean   @default(false)
+  likes          Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  comments       Comment[]
+}
+
+model Comment {
+  id           String   @id @default(uuid())
+  submissionId String
+  authorName   String   @db.VarChar(50)
+  text         String   @db.Text
+  createdAt    DateTime @default(now())
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 }

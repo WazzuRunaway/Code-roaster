@@ -45,3 +45,83 @@ export async function getSubmissionById(req: Request, res: Response) {
 
   res.json(submission);
 }
+
+export async function publishSubmission(req: Request, res: Response) {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { authorName } = req.body;
+
+  if (!authorName || !authorName.trim()) {
+    return res.status(400).json({ error: 'Author name is required' });
+  }
+
+  const trimmed = authorName.trim().slice(0, 50);
+
+  const submission = await prisma.submission.update({
+    where: { id },
+    data: { authorName: trimmed, isPublic: true },
+  });
+
+  res.json(submission);
+}
+
+export async function likeSubmission(req: Request, res: Response) {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  const submission = await prisma.submission.update({
+    where: { id },
+    data: { likes: { increment: 1 } },
+  });
+
+  res.json({ likes: submission.likes });
+}
+
+export async function getComments(req: Request, res: Response) {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  const comments = await prisma.comment.findMany({
+    where: { submissionId: id },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json(comments);
+}
+
+export async function addComment(req: Request, res: Response) {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { authorName, text } = req.body;
+
+  if (!text || !text.trim()) {
+    return res.status(400).json({ error: 'Comment text is required' });
+  }
+  if (!authorName || !authorName.trim()) {
+    return res.status(400).json({ error: 'Author name is required' });
+  }
+
+  const comment = await prisma.comment.create({
+    data: {
+      submissionId: id,
+      authorName: authorName.trim().slice(0, 50),
+      text: text.trim().slice(0, 500),
+    },
+  });
+
+  res.json(comment);
+}
+
+export async function getRecentlyRoasted(req: Request, res: Response) {
+  const submissions = await prisma.submission.findMany({
+    where: { isPublic: true },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
+  res.json(submissions);
+}
+
+export async function getHallOfShame(req: Request, res: Response) {
+  const submissions = await prisma.submission.findMany({
+    where: { isPublic: true },
+    orderBy: { likes: 'desc' },
+    take: 100,
+  });
+  res.json(submissions);
+}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getSubmissions } from '../services/api';
+import { getRecentlyRoasted } from '../services/api';
 
 interface Submission {
   id: string;
   code: string;
   language: string;
   roast: string;
+  authorName?: string;
   spaghettiScore: number;
   createdAt: string;
 }
@@ -17,9 +18,9 @@ export default function RecentlyRoastedPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    getSubmissions()
+    getRecentlyRoasted()
       .then(setSubmissions)
-      .catch(() => setError('Failed to load submissions'))
+      .catch(() => setError('Failed to load roasts'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -42,13 +43,13 @@ export default function RecentlyRoastedPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-4xl font-bold text-center mb-2">🔥 Recently Roasted</h1>
-      <p className="text-gray-400 text-center mb-8">Latest code that got burned</p>
+      <p className="text-gray-400 text-center mb-8">Brave souls who shared their shame</p>
 
       {submissions.length === 0 ? (
         <div className="text-center text-gray-500 mt-16">
-          <p className="text-xl">🦗 No roasts yet.</p>
+          <p className="text-xl">🦗 Nobody has shared their roast yet.</p>
           <Link to="/" className="text-orange-400 hover:underline mt-4 inline-block">
-            Be the first to get roasted →
+            Be the first! →
           </Link>
         </div>
       ) : (
@@ -56,13 +57,18 @@ export default function RecentlyRoastedPage() {
           {submissions.map((sub) => (
             <div key={sub.id} className="bg-gray-800 rounded-lg overflow-hidden">
               <div className="flex justify-between items-center p-4 border-b border-gray-700">
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-2 items-center flex-wrap">
                   <span className="bg-orange-600 px-3 py-1 rounded text-sm font-medium">
                     {sub.language}
                   </span>
                   <span className="bg-gray-700 px-2 py-1 rounded text-xs">
                     🍝 {sub.spaghettiScore}
                   </span>
+                  {sub.authorName && (
+                    <span className="bg-purple-600 px-2 py-1 rounded text-xs">
+                      👤 {sub.authorName}
+                    </span>
+                  )}
                 </div>
                 <span className="text-gray-400 text-sm">
                   {new Date(sub.createdAt).toLocaleString()}
