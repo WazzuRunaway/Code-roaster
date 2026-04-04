@@ -1,7 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ResultPage from './pages/ResultPage';
-import FeedPage from './pages/FeedPage';
+import RecentlyRoastedPage from './pages/RecentlyRoastedPage';
+import HallOfFamePage from './pages/HallOfFamePage';
 import Navbar from './components/Navbar';
 
 function App() {
@@ -11,7 +12,8 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/result/:id" element={<ResultPage />} />
-        <Route path="/feed" element={<FeedPage />} />
+        <Route path="/roasted" element={<RecentlyRoastedPage />} />
+        <Route path="/halloffame" element={<HallOfFamePage />} />
       </Routes>
     </>
   );

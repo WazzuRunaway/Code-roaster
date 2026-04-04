@@ -1,0 +1,100 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { getSubmissions } from '../services/api';
+
+interface Submission {
+  id: string;
+  code: string;
+  language: string;
+  roast: string;
+  spaghettiScore: number;
+  createdAt: string;
+}
+
+export default function RecentlyRoastedPage() {
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    getSubmissions()
+      .then(setSubmissions)
+      .catch(() => setError('Failed to load submissions'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <p className="text-xl">🔥 Loading the roasts...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <p className="text-red-400">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-8">
+      <h1 className="text-4xl font-bold text-center mb-2">🔥 Recently Roasted</h1>
+      <p className="text-gray-400 text-center mb-8">Latest code that got burned</p>
+
+      {submissions.length === 0 ? (
+        <div className="text-center text-gray-500 mt-16">
+          <p className="text-xl">🦗 No roasts yet.</p>
+          <Link to="/" className="text-orange-400 hover:underline mt-4 inline-block">
+            Be the first to get roasted →
+          </Link>
+        </div>
+      ) : (
+        <div className="max-w-4xl mx-auto space-y-6">
+          {submissions.map((sub) => (
+            <div key={sub.id} className="bg-gray-800 rounded-lg overflow-hidden">
+              <div className="flex justify-between items-center p-4 border-b border-gray-700">
+                <div className="flex gap-2 items-center">
+                  <span className="bg-orange-600 px-3 py-1 rounded text-sm font-medium">
+                    {sub.language}
+                  </span>
+                  <span className="bg-gray-700 px-2 py-1 rounded text-xs">
+                    🍝 {sub.spaghettiScore}
+                  </span>
+                </div>
+                <span className="text-gray-400 text-sm">
+                  {new Date(sub.createdAt).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="p-4 space-y-4">
+                <pre className="bg-gray-950 p-4 rounded text-sm overflow-x-auto">
+                  <code className="text-green-400">
+                    {sub.code.length > 300
+                      ? sub.code.slice(0, 300) + '\n  // ... truncated'
+                      : sub.code}
+                  </code>
+                </pre>
+
+                <p className="text-gray-300 italic">
+                  {sub.roast.length > 200
+                    ? sub.roast.slice(0, 200) + '...'
+                    : sub.roast}
+                </p>
+
+                <Link
+                  to={`/result/${sub.id}`}
+                  className="text-orange-400 hover:underline font-medium"
+                >
+                  See full roast →
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
