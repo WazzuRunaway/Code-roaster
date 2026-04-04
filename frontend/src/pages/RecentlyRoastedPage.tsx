@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getRecentlyRoasted, likeSubmission } from '../services/api';
 import type { Submission } from '../types';
@@ -9,19 +9,38 @@ export default function RecentlyRoastedPage() {
   const [error, setError] = useState('');
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
-  const handleLike = useCallback(async (id: string) => {
-    if (likedIds.has(id)) return;
-    const { likes } = await likeSubmission(id);
-    setLikedIds((prev) => new Set(prev).add(id));
-    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, likes } : s)));
-  }, [likedIds]);
+  // Poll every 10 seconds for real-time updates from other devices
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchSubmissions = useCallback(async () => {
+    try {
+      const data = await getRecentlyRoasted();
+      setSubmissions(data);
+    } catch {
+      setError('Failed to load roasts');
+    }
+  }, []);
 
   useEffect(() => {
-    getRecentlyRoasted()
-      .then(setSubmissions)
-      .catch(() => setError('Failed to load roasts'))
-      .finally(() => setLoading(false));
-  }, []);
+    fetchSubmissions().finally(() => setLoading(false));
+
+    pollRef.current = setInterval(fetchSubmissions, 10000);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [fetchSubmissions]);
+
+  const handleLike = useCallback(async (id: string) => {
+    if (likedIds.has(id)) return;
+    try {
+      const { likes } = await likeSubmission(id);
+      setLikedIds((prev) => new Set(prev).add(id));
+      setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, likes } : s)));
+    } catch {
+      // Silently fail
+    }
+  }, [likedIds]);
 
   if (loading) {
     return (
@@ -76,13 +95,18 @@ export default function RecentlyRoastedPage() {
                   <button
                     onClick={() => handleLike(sub.id)}
                     disabled={likedIds.has(sub.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors shrink-0 ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 shrink-0 ${
                       likedIds.has(sub.id)
-                        ? 'bg-gray-600 cursor-not-allowed opacity-50'
-                        : 'bg-red-600 hover:bg-red-700'
+                        ? 'bg-red-900 border-2 border-red-700 cursor-not-allowed shadow-lg shadow-red-900/50'
+                        : 'bg-red-600 hover:bg-red-700 hover:scale-105 active:scale-95'
                     }`}
+                    aria-label={`Like this submission. Current likes: ${sub.likes}`}
                   >
-                    <span className="text-xl">🔥</span>
+                    <span className={`text-xl transition-transform duration-300 ${
+                      likedIds.has(sub.id) ? 'scale-125' : ''
+                    }`}>
+                      {likedIds.has(sub.id) ? '❤️‍🔥' : '🔥'}
+                    </span>
                     <span className="font-bold">{sub.likes}</span>
                   </button>
                 </div>
