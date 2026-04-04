@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitCode } from '../services/api';
 
@@ -9,13 +9,30 @@ const spicinessLevels = [
   { value: 'hot', label: '🌶️🌶️🌶️ Hot', desc: 'Savage' },
 ];
 
+const funPlaceholders = [
+  '// Paste your worst code here...\n// (we promise not to judge... much)',
+  '// Got code that keeps you up at night?\n// Drop it here 🔥',
+  '// var x = 1; var y = 2; var z = x + y;\n// We\'ve all been there. Show us.',
+  '// That one function nobody dares to touch?\n// Yeah, this one.',
+  '// 500 lines of if-else?\n// We\'re ready. Bring it on.',
+  '// Code that works but nobody knows why?\n// Perfect candidate.',
+];
+
 export default function HomePage() {
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState(languages[0]);
   const [spiciness, setSpiciness] = useState('medium');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIdx((prev) => (prev + 1) % funPlaceholders.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +105,7 @@ export default function HomePage() {
               }, 0);
             }
           }}
-          placeholder="Paste your code here..."
+          placeholder={funPlaceholders[placeholderIdx]}
           className="w-full h-64 p-4 rounded bg-gray-800 border border-gray-700 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
           required
         />
