@@ -1,0 +1,54 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: coderoast-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: coderoast
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - coderoast-net
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: coderoast-backend
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/coderoast?schema=public
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    networks:
+      - coderoast-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://10.93.24.228/api
+    container_name: coderoast-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - coderoast-net
+    restart: unless-stopped
+
+networks:
+  coderoast-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
