@@ -32,7 +32,7 @@ export async function getAllSubmissions(_req: Request, res: Response) {
 }
 
 export async function getSubmissionById(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const submission = await prisma.submission.findUnique({ where: { id } });
 
   if (!submission) {
