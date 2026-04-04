@@ -30,7 +30,7 @@ export async function submitCode(req: Request, res: Response) {
 export async function getAllSubmissions(_req: Request, res: Response) {
   const submissions = await prisma.submission.findMany({
     orderBy: { createdAt: 'desc' },
-    take: 50,
+    take: 100,
   });
   res.json(submissions);
 }
