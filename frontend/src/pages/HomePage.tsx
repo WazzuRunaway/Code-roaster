@@ -3,10 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { submitCode } from '../services/api';
 
 const languages = ['JavaScript', 'Python', 'Java', 'C++', 'TypeScript', 'Go', 'Rust', 'PHP', 'C#'];
+const spicinessLevels = [
+  { value: 'mild', label: '🌶️ Mild', desc: 'Gentle' },
+  { value: 'medium', label: '🌶️🌶️ Medium', desc: 'Balanced' },
+  { value: 'hot', label: '🌶️🌶️🌶️ Hot', desc: 'Savage' },
+];
 
 export default function HomePage() {
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState(languages[0]);
+  const [spiciness, setSpiciness] = useState('medium');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -16,10 +22,10 @@ export default function HomePage() {
     setError('');
     setLoading(true);
     try {
-      const submission = await submitCode(code, language);
+      const submission = await submitCode(code, language, spiciness);
       navigate(`/result/${submission.id}`);
     } catch {
-      setError('Failed to submit code. Please try again.');
+      setError('Failed to submit code. Make sure Ollama is running.');
     } finally {
       setLoading(false);
     }
@@ -40,6 +46,31 @@ export default function HomePage() {
             <option key={lang} value={lang}>{lang}</option>
           ))}
         </select>
+
+        {/* Spiciness Selector */}
+        <div className="flex gap-3 justify-center">
+          {spicinessLevels.map((level) => (
+            <label
+              key={level.value}
+              className={`flex-1 p-3 rounded-lg border-2 cursor-pointer text-center transition-all ${
+                spiciness === level.value
+                  ? 'border-orange-500 bg-orange-500/20'
+                  : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+              }`}
+            >
+              <input
+                type="radio"
+                name="spiciness"
+                value={level.value}
+                checked={spiciness === level.value}
+                onChange={(e) => setSpiciness(e.target.value)}
+                className="hidden"
+              />
+              <div className="text-lg">{level.label}</div>
+              <div className="text-xs text-gray-400">{level.desc}</div>
+            </label>
+          ))}
+        </div>
 
         <textarea
           value={code}

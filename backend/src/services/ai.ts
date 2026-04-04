@@ -1,21 +1,39 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 
-const model = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY).getGenerativeModel({ model: 'gemini-2.0-flash' })
+const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+const ollamaModel = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b';
+
+// Ollama uses OpenAI-compatible API when running
+const openai = process.env.OLLAMA_URL
+  ? new OpenAI({
+      apiKey: 'ollama', // Ollama doesn't require a real API key
+      baseURL: `${ollamaUrl}/v1`,
+    })
   : null;
 
-export async function generateRoast(code: string, language: string) {
-  // Fallback when no API key is set (for testing/development)
-  if (!model) {
+export async function generateRoast(code: string, language: string, spiciness: string = 'medium') {
+  // Fallback when Ollama is not running
+  if (!openai) {
+    const mockScores: Record<string, number> = { mild: 40, medium: 65, hot: 90 };
     return {
       roast: `Oh wow, this ${language} code is... something. I've seen better logic in a coin flip. The variable naming suggests a random number generator wrote this at 3 AM. But hey, at least it exists — unlike my motivation on Monday mornings.`,
-      solution: `// Refactored version\n// TODO: Add your GEMINI_API_KEY to .env for real AI analysis\n\nfunction improved() {\n  // Clean, readable, actually works\n  return true;\n}`,
+      solution: `// Refactored version\n// TODO: Start Ollama and run: ollama pull qwen2.5-coder:3b\n\nfunction improved() {\n  // Clean, readable, actually works\n  return true;\n}`,
+      spaghettiScore: mockScores[spiciness] || 65,
     };
   }
 
-  const prompt = `You are a brutally honest code reviewer. Analyze this ${language} code and provide:
-1. A funny, sarcastic roast pointing out the mistakes (2-3 paragraphs)
-2. A clean, corrected solution with explanations
+  const toneMap: Record<string, string> = {
+    mild: 'gentle and constructive, like a helpful mentor',
+    medium: 'balanced with light sarcasm and humor',
+    hot: 'brutally honest, savage, and hilarious',
+  };
+  const tone = toneMap[spiciness] || toneMap.medium;
+
+  const prompt = `You are a code reviewer with a ${tone} tone. Analyze this ${language} code:
+
+1. First, rate how bad the code is from 0 to 100 (spaghetti score, where 100 is maximum spaghetti chaos)
+2. Then, provide a funny roast (${tone}) pointing out the mistakes
+3. Finally, give a clean, corrected solution with brief explanations
 
 Code:
 \`\`\`${language}
@@ -23,11 +41,18 @@ ${code}
 \`\`\`
 
 Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
-{"roast": "your roast here", "solution": "the corrected code here"}`;
+{"spaghettiScore": 75, "roast": "your roast here", "solution": "the corrected code here"}`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
-  const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+  const response = await openai.chat.completions.create({
+    model: ollamaModel,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.8,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error('Empty response from AI');
+
+  const cleaned = content.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
 
   try {
     return JSON.parse(cleaned);

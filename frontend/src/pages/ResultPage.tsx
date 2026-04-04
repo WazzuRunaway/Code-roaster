@@ -8,6 +8,8 @@ interface Submission {
   language: string;
   roast: string;
   solution: string;
+  spiciness: string;
+  spaghettiScore: number;
   createdAt: string;
 }
 
@@ -26,6 +28,20 @@ export default function ResultPage() {
         .finally(() => setLoading(false));
     }
   }, [id]);
+
+  const getSpiceLabel = (score: number) => {
+    if (score >= 80) return '🍝🍝🍝 Maximum Spaghetti';
+    if (score >= 60) return '🍝🍝 Pretty Tangled';
+    if (score >= 40) return '🍝 A Bit Messy';
+    return '🍽️ Surprisingly Clean';
+  };
+
+  const getSpiceColor = (score: number) => {
+    if (score >= 80) return 'bg-red-500';
+    if (score >= 60) return 'bg-orange-500';
+    if (score >= 40) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
 
   if (loading) {
     return (
@@ -48,7 +64,27 @@ export default function ResultPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-2">🔥 The Roast Is In!</h1>
-          <span className="bg-orange-600 px-3 py-1 rounded text-sm">{submission.language}</span>
+          <div className="flex justify-center gap-3">
+            <span className="bg-orange-600 px-3 py-1 rounded text-sm">{submission.language}</span>
+            <span className="bg-purple-600 px-3 py-1 rounded text-sm capitalize">
+              {submission.spiciness}
+            </span>
+          </div>
+        </div>
+
+        {/* Spaghetti Meter */}
+        <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-xl font-bold">🍝 Spaghetti Score</h2>
+            <span className="text-2xl font-bold">{submission.spaghettiScore}/100</span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
+            <div
+              className={`h-4 rounded-full transition-all duration-500 ${getSpiceColor(submission.spaghettiScore)}`}
+              style={{ width: `${submission.spaghettiScore}%` }}
+            />
+          </div>
+          <p className="text-gray-400 mt-2 text-center">{getSpiceLabel(submission.spaghettiScore)}</p>
         </div>
 
         <div className="bg-gray-800 p-6 rounded-lg">

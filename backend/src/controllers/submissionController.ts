@@ -4,21 +4,25 @@ import { prisma } from '../utils/prisma';
 
 export async function submitCode(req: Request, res: Response) {
   try {
-    const { code, language } = req.body;
+    const { code, language, spiciness } = req.body;
 
     if (!code || !language) {
       return res.status(400).json({ error: 'Code and language are required' });
     }
 
-    const { roast, solution } = await generateRoast(code, language);
+    const validSpiciness = ['mild', 'medium', 'hot'].includes(spiciness)
+      ? spiciness
+      : 'medium';
+
+    const { roast, solution, spaghettiScore } = await generateRoast(code, language, validSpiciness);
 
     const submission = await prisma.submission.create({
-      data: { code, language, roast, solution },
+      data: { code, language, roast, solution, spiciness: validSpiciness, spaghettiScore },
     });
 
     res.json(submission);
   } catch (error) {
-    console.error(error);
+    console.error('Submission error:', error);
     res.status(500).json({ error: 'Failed to process submission' });
   }
 }

@@ -8,11 +8,13 @@ datasource db {
 }
 
 model Submission {
-  id        String   @id @default(uuid())
-  code      String   @db.Text
-  language  String
-  roast     String   @db.Text
-  solution  String   @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid())
+  code           String   @db.Text
+  language       String
+  roast          String   @db.Text
+  solution       String   @db.Text
+  spiciness      String   @default("medium")
+  spaghettiScore Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

@@ -2,8 +2,8 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-export const submitCode = async (code: string, language: string) => {
-  const response = await axios.post(`${API_URL}/submit`, { code, language });
+export const submitCode = async (code: string, language: string, spiciness: string) => {
+  const response = await axios.post(`${API_URL}/submit`, { code, language, spiciness });
   return response.data;
 };
 
