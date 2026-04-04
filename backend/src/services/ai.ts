@@ -1,18 +1,22 @@
 import OpenAI from 'openai';
 
-const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
-const ollamaModel = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b';
+let _openai: OpenAI | null | undefined = undefined;
 
-// Ollama uses OpenAI-compatible API when running
-const openai = process.env.OLLAMA_URL
-  ? new OpenAI({
-      apiKey: 'ollama', // Ollama doesn't require a real API key
-      baseURL: `${ollamaUrl}/v1`,
-    })
-  : null;
+function getOpenAIClient(): OpenAI | null {
+  if (_openai !== undefined) return _openai;
+
+  const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+
+  _openai = new OpenAI({
+    apiKey: 'ollama',
+    baseURL: `${ollamaUrl}/v1`,
+  });
+
+  return _openai;
+}
 
 export async function generateRoast(code: string, language: string, spiciness: string = 'medium') {
-  // Fallback when Ollama is not running
+  const openai = getOpenAIClient();
   if (!openai) {
     const mockScores: Record<string, number> = { mild: 40, medium: 65, hot: 90 };
     return {
@@ -22,6 +26,7 @@ export async function generateRoast(code: string, language: string, spiciness: s
     };
   }
 
+  const model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b';
   const toneMap: Record<string, string> = {
     mild: 'gentle and constructive, like a helpful mentor',
     medium: 'balanced with light sarcasm and humor',
@@ -44,7 +49,7 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
 {"spaghettiScore": 75, "roast": "your roast here", "solution": "the corrected code here"}`;
 
   const response = await openai.chat.completions.create({
-    model: ollamaModel,
+    model,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.8,
   });

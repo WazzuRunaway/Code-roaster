@@ -11,7 +11,8 @@
       "Bash(taskkill *)",
       "Bash(type *)",
       "Bash(del *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(ollama *)"
     ]
   },
   "$version": 3
