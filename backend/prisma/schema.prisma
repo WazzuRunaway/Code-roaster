@@ -36,3 +36,8 @@ model Comment {
 
   @@index([submissionId, createdAt(sort: Desc)])
 }
+
+model SystemSettings {
+  id            String   @id @default("global")
+  lastLikeReset DateTime @default(now())
+}
