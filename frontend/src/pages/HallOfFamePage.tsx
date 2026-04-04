@@ -100,26 +100,31 @@ export default function HallOfShamePage() {
         <div className="max-w-4xl mx-auto space-y-6">
           {submissions.map((sub, idx) => (
             <div key={sub.id} className="bg-gray-800 rounded-lg overflow-hidden">
-              <div className="flex justify-between items-center p-4 border-b border-gray-700">
-                <div className="flex gap-2 items-center flex-wrap">
-                  <span className="text-2xl font-bold text-orange-400 w-8 text-center">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 border-b border-gray-700">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <span className={`font-bold text-center inline-block ${
+                    idx === 0 ? 'text-3xl text-yellow-400 w-12' :
+                    idx === 1 ? 'text-2xl text-gray-300 w-12' :
+                    idx === 2 ? 'text-2xl text-orange-400 w-10' :
+                    'text-lg text-gray-500 w-10'
+                  }`}>
                     #{idx + 1}
                   </span>
-                  <span className="bg-orange-600 px-3 py-1 rounded text-sm font-medium">
+                  <span className="bg-orange-600 px-3 py-1 rounded text-sm font-medium whitespace-nowrap">
                     {sub.language}
                   </span>
-                  <span className="bg-gray-700 px-2 py-1 rounded text-xs">
+                  <span className="bg-gray-700 px-2 py-1 rounded text-xs whitespace-nowrap">
                     🍝 {sub.spaghettiScore}
                   </span>
                   {sub.authorName && (
-                    <span className="bg-purple-600 px-2 py-1 rounded text-xs">
+                    <span className="bg-purple-600 px-2 py-1 rounded text-xs whitespace-nowrap truncate max-w-[120px]">
                       👤 {sub.authorName}
                     </span>
                   )}
                 </div>
                 <button
                   onClick={() => handleLike(sub.id)}
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors shrink-0 self-start sm:self-auto"
                 >
                   <span className="text-xl">🔥</span>
                   <span className="font-bold">{sub.likes}</span>
