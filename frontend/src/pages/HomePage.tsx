@@ -16,6 +16,20 @@ const funPlaceholders = [
   '// That one function nobody dares to touch?\n// Yeah, this one.',
   '// 500 lines of if-else?\n// We\'re ready. Bring it on.',
   '// Code that works but nobody knows why?\n// Perfect candidate.',
+  '// Stack Overflow copy-paste special?\n// We won\'t tell anyone.',
+  '// Wrote this at 3 AM before deadline?\n// We\'ve all been there.',
+  '// "It works on my machine" energy?\n// Let\'s see the damage.',
+  '// Your professor asked for clean code?\n// Good luck with that.',
+  '// This function has 47 parameters?\n// Bold strategy.',
+  '// Commented out code "just in case"?\n// We found it.',
+  '// Variables named a, b, c, aa, ab?\n// Classic naming convention.',
+  '// One giant function to rule them all?\n// The spaghetti is real.',
+  '// You inherited this codebase?\n// Our condolences. Show us.',
+  '// "Temporary hack" from 2019?\n// Nothing is permanent.',
+  '// console.log() debugging at its finest?\n// Respect.',
+  '// 12 nested for-loans? We lost count.\n// Show us the abomination.',
+  '// "I\'ll refactor later" - said no one ever?\n// Today is that day.',
+  '// Code so clever even you don\'t get it?\n// Let\'s fix that.',
 ];
 
 export default function HomePage() {
