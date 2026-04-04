@@ -56,7 +56,7 @@ export default function HomePage() {
       const submission = await submitCode(code, language, spiciness);
       navigate(`/result/${submission.id}`);
     } catch {
-      setError('Failed to submit code. Make sure Ollama is running.');
+      setError('The roast got stuck in the oven. Try again!');
     } finally {
       setLoading(false);
     }
