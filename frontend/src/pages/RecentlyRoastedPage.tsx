@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getRecentlyRoasted } from '../services/api';
+import { getRecentlyRoasted, likeSubmission } from '../services/api';
 
 interface Submission {
   id: string;
@@ -8,6 +8,7 @@ interface Submission {
   language: string;
   roast: string;
   authorName?: string;
+  likes: number;
   spaghettiScore: number;
   createdAt: string;
 }
@@ -16,6 +17,13 @@ export default function RecentlyRoastedPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const handleLike = async (id: string) => {
+    const { likes } = await likeSubmission(id);
+    setSubmissions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, likes } : s))
+    );
+  };
 
   useEffect(() => {
     getRecentlyRoasted()
@@ -56,23 +64,32 @@ export default function RecentlyRoastedPage() {
         <div className="max-w-4xl mx-auto space-y-6">
           {submissions.map((sub) => (
             <div key={sub.id} className="bg-gray-800 rounded-lg overflow-hidden">
-              <div className="flex justify-between items-center p-4 border-b border-gray-700">
-                <div className="flex gap-2 items-center flex-wrap">
-                  <span className="bg-orange-600 px-3 py-1 rounded text-sm font-medium">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 border-b border-gray-700">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="bg-orange-600 px-3 py-1 rounded text-sm font-medium whitespace-nowrap">
                     {sub.language}
                   </span>
-                  <span className="bg-gray-700 px-2 py-1 rounded text-xs">
+                  <span className="bg-gray-700 px-2 py-1 rounded text-xs whitespace-nowrap">
                     🍝 {sub.spaghettiScore}
                   </span>
                   {sub.authorName && (
-                    <span className="bg-purple-600 px-2 py-1 rounded text-xs">
+                    <span className="bg-purple-600 px-2 py-1 rounded text-xs whitespace-nowrap truncate max-w-[120px]">
                       👤 {sub.authorName}
                     </span>
                   )}
                 </div>
-                <span className="text-gray-400 text-sm">
-                  {new Date(sub.createdAt).toLocaleString()}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 text-sm whitespace-nowrap">
+                    {new Date(sub.createdAt).toLocaleString()}
+                  </span>
+                  <button
+                    onClick={() => handleLike(sub.id)}
+                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors shrink-0"
+                  >
+                    <span className="text-xl">🔥</span>
+                    <span className="font-bold">{sub.likes}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="p-4 space-y-4">
