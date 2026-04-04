@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(npm run *)",
+      "Bash(timeout *)",
+      "Bash(curl *)"
     ]
   },
   "$version": 3
