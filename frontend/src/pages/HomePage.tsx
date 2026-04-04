@@ -75,6 +75,19 @@ export default function HomePage() {
         <textarea
           value={code}
           onChange={(e) => setCode(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              const target = e.target as HTMLTextAreaElement;
+              const start = target.selectionStart;
+              const end = target.selectionEnd;
+              const newValue = code.slice(0, start) + '  ' + code.slice(end);
+              setCode(newValue);
+              setTimeout(() => {
+                target.selectionStart = target.selectionEnd = start + 2;
+              }, 0);
+            }
+          }}
           placeholder="Paste your code here..."
           className="w-full h-64 p-4 rounded bg-gray-800 border border-gray-700 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
           required

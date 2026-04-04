@@ -89,12 +89,16 @@ export default function ResultPage() {
 
         <div className="bg-gray-800 p-6 rounded-lg">
           <h2 className="text-xl font-bold mb-4">💀 What You Did Wrong</h2>
-          <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">{submission.roast}</p>
+          <div className="text-gray-300 leading-relaxed space-y-3">
+            {submission.roast.split('\n').map((line, i) => (
+              line.trim() ? <p key={i}>{line}</p> : <br key={i} />
+            ))}
+          </div>
         </div>
 
         <div className="bg-gray-800 p-6 rounded-lg">
           <h2 className="text-xl font-bold mb-4">✅ How To Fix It</h2>
-          <pre className="bg-gray-950 p-4 rounded overflow-x-auto text-sm text-green-400">
+          <pre className="bg-gray-950 p-4 rounded overflow-x-auto text-sm text-green-400 whitespace-pre-wrap break-words">
             <code>{submission.solution}</code>
           </pre>
         </div>

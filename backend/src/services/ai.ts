@@ -37,15 +37,15 @@ export async function generateRoast(code: string, language: string, spiciness: s
   const prompt = `You are a code reviewer with a ${tone} tone. Analyze this ${language} code:
 
 1. First, rate how bad the code is from 0 to 100 (spaghetti score, where 100 is maximum spaghetti chaos)
-2. Then, provide a funny roast (${tone}) pointing out the mistakes
-3. Finally, give a clean, corrected solution with brief explanations
+2. Then, provide a funny roast (${tone}) pointing out the mistakes. Keep it to 2-3 short paragraphs.
+3. Finally, give a clean, corrected solution with brief explanations (1-2 sentences).
 
 Code:
 \`\`\`${language}
 ${code}
 \`\`\`
 
-Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
+Respond in EXACTLY this JSON format (no extra text, no markdown wrapping). Escape all newlines in strings:
 {"spaghettiScore": 75, "roast": "your roast here", "solution": "the corrected code here"}`;
 
   const response = await openai.chat.completions.create({

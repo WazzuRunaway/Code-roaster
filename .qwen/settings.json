@@ -12,7 +12,8 @@
       "Bash(type *)",
       "Bash(del *)",
       "Bash(npm uninstall *)",
-      "Bash(ollama *)"
+      "Bash(ollama *)",
+      "Bash(findstr *)"
     ]
   },
   "$version": 3
