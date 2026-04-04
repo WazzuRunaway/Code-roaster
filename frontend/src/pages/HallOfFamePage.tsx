@@ -120,9 +120,13 @@ export default function HallOfShamePage() {
 
       {submissions.length === 0 ? (
         <div className="text-center text-gray-500 mt-16">
-          <p className="text-xl">🏗️ Nothing here yet.</p>
+          <p className="text-4xl mb-4">🏗️</p>
+          <p className="text-xl font-bold text-gray-400 mb-2">Hall of Shame is empty today</p>
+          <p className="text-gray-500 mb-4">
+            No one has been roasted yet today. The leaderboard resets every midnight.
+          </p>
           <Link to="/" className="text-orange-400 hover:underline mt-4 inline-block">
-            Submit code and share it to get featured →
+            Submit code and be the first! →
           </Link>
         </div>
       ) : (
