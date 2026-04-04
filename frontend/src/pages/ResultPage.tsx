@@ -1,19 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getSubmission, publishSubmission } from '../services/api';
-
-interface Submission {
-  id: string;
-  code: string;
-  language: string;
-  roast: string;
-  solution: string;
-  spiciness: string;
-  spaghettiScore: number;
-  authorName?: string;
-  isPublic: boolean;
-  createdAt: string;
-}
+import type { Submission } from '../types';
 
 export default function ResultPage() {
   const { id } = useParams();
@@ -25,11 +13,12 @@ export default function ResultPage() {
   const [sharing, setSharing] = useState(false);
   const [shared, setShared] = useState(false);
   const [shareError, setShareError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (id) {
       getSubmission(id)
-        .then((data: Submission) => {
+        .then((data) => {
           setSubmission(data);
           if (data.isPublic) setShared(true);
         })
@@ -38,7 +27,7 @@ export default function ResultPage() {
     }
   }, [id]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     if (!authorName.trim() || !id) return;
     setShareError('');
     setSharing(true);
@@ -51,16 +40,23 @@ export default function ResultPage() {
     } finally {
       setSharing(false);
     }
-  };
+  }, [authorName, id]);
 
-  const getSpiceLabel = (score: number) => {
+  const handleCopySolution = useCallback(async () => {
+    if (!submission?.solution) return;
+    await navigator.clipboard.writeText(submission.solution);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [submission?.solution]);
+
+  const spiceLabel = (score: number) => {
     if (score >= 80) return '🍝🍝🍝 Maximum Spaghetti';
     if (score >= 60) return '🍝🍝 Pretty Tangled';
     if (score >= 40) return '🍝 A Bit Messy';
     return '🍽️ Surprisingly Clean';
   };
 
-  const getSpiceColor = (score: number) => {
+  const spiceColor = (score: number) => {
     if (score >= 80) return 'bg-red-500';
     if (score >= 60) return 'bg-orange-500';
     if (score >= 40) return 'bg-yellow-500';
@@ -86,6 +82,7 @@ export default function ResultPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-2">🔥 The Roast Is In!</h1>
           <div className="flex justify-center gap-3 flex-wrap">
@@ -105,13 +102,14 @@ export default function ResultPage() {
           </div>
           <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
             <div
-              className={`h-4 rounded-full transition-all duration-500 ${getSpiceColor(submission.spaghettiScore)}`}
+              className={`h-4 rounded-full transition-all duration-500 ${spiceColor(submission.spaghettiScore)}`}
               style={{ width: `${submission.spaghettiScore}%` }}
             />
           </div>
-          <p className="text-gray-400 mt-2 text-center">{getSpiceLabel(submission.spaghettiScore)}</p>
+          <p className="text-gray-400 mt-2 text-center">{spiceLabel(submission.spaghettiScore)}</p>
         </div>
 
+        {/* Roast */}
         <div className="bg-gray-800 p-6 rounded-lg">
           <h2 className="text-xl font-bold mb-4">💀 What You Did Wrong</h2>
           <div className="text-gray-300 leading-relaxed space-y-3">
@@ -121,8 +119,17 @@ export default function ResultPage() {
           </div>
         </div>
 
+        {/* Solution */}
         <div className="bg-gray-800 p-6 rounded-lg">
-          <h2 className="text-xl font-bold mb-4">✅ How To Fix It</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">✅ How To Fix It</h2>
+            <button
+              onClick={handleCopySolution}
+              className="text-sm text-gray-400 hover:text-white transition-colors px-3 py-1 rounded border border-gray-600 hover:border-gray-400"
+            >
+              {copied ? '✅ Copied!' : '📋 Copy'}
+            </button>
+          </div>
           <pre className="bg-gray-950 p-4 rounded overflow-x-auto text-sm text-green-400 whitespace-pre-wrap break-words">
             <code>{submission.solution}</code>
           </pre>
@@ -149,13 +156,14 @@ export default function ResultPage() {
                 disabled={sharing || !authorName.trim()}
                 className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded font-bold disabled:opacity-50 transition-colors whitespace-nowrap"
               >
-                {sharing ? 'Sharing...' : '🔥 Share My Roast'}
+                {sharing ? '⏳ Sharing...' : '🔥 Share My Roast'}
               </button>
             </div>
             {shareError && <p className="text-red-400 mt-2">{shareError}</p>}
           </div>
         )}
 
+        {/* Navigation */}
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={() => navigate('/')}

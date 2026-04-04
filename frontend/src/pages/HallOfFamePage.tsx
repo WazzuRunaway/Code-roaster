@@ -1,23 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getHallOfShame, likeSubmission, getComments, addComment } from '../services/api';
+import type { Submission, Comment } from '../types';
 
-interface Submission {
-  id: string;
-  code: string;
-  language: string;
-  roast: string;
-  authorName?: string;
-  likes: number;
-  spaghettiScore: number;
-  createdAt: string;
-}
-
-interface Comment {
-  id: string;
+interface CommentFormState {
   authorName: string;
   text: string;
-  createdAt: string;
 }
 
 export default function HallOfShamePage() {
@@ -26,8 +14,8 @@ export default function HallOfShamePage() {
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
-  const [newComment, setNewComment] = useState('');
-  const [commentAuthor, setCommentAuthor] = useState('');
+  const [commentForms, setCommentForms] = useState<Record<string, CommentFormState>>({});
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     getHallOfShame()
@@ -36,37 +24,49 @@ export default function HallOfShamePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleLike = async (id: string) => {
+  const handleLike = useCallback(async (id: string) => {
+    if (likedIds.has(id)) return;
     const { likes } = await likeSubmission(id);
-    setSubmissions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, likes } : s))
-    );
-  };
+    setLikedIds((prev) => new Set(prev).add(id));
+    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, likes } : s)));
+  }, [likedIds]);
 
-  const loadComments = async (id: string) => {
+  const loadComments = useCallback(async (id: string) => {
     if (comments[id]) return;
     const data = await getComments(id);
     setComments((prev) => ({ ...prev, [id]: data }));
-  };
+  }, [comments]);
 
-  const toggleExpand = async (id: string) => {
-    if (expandedId === id) {
-      setExpandedId(null);
-    } else {
-      setExpandedId(id);
-      await loadComments(id);
-    }
-  };
+  const toggleExpand = useCallback(async (id: string) => {
+    setExpandedId((prev) => {
+      if (prev === id) return null;
+      loadComments(id);
+      return id;
+    });
+  }, [loadComments]);
 
-  const submitComment = async (id: string) => {
-    if (!newComment.trim() || !commentAuthor.trim()) return;
-    const comment = await addComment(id, commentAuthor.trim(), newComment.trim());
-    setComments((prev) => ({
+  const updateCommentForm = useCallback((id: string, updates: Partial<CommentFormState>) => {
+    setCommentForms((prev) => ({
       ...prev,
-      [id]: [comment, ...(prev[id] || [])],
+      [id]: { ...(prev[id] || { authorName: '', text: '' }), ...updates },
     }));
-    setNewComment('');
-  };
+  }, []);
+
+  const submitComment = useCallback(async (id: string) => {
+    const form = commentForms[id] || { authorName: '', text: '' };
+    if (!form.text.trim() || !form.authorName.trim()) return;
+
+    try {
+      const comment = await addComment(id, form.authorName.trim(), form.text.trim());
+      setComments((prev) => ({
+        ...prev,
+        [id]: [comment, ...(prev[id] || [])],
+      }));
+      updateCommentForm(id, { authorName: form.authorName, text: '' });
+    } catch {
+      // Silently fail
+    }
+  }, [commentForms, updateCommentForm]);
 
   if (loading) {
     return (
@@ -100,6 +100,7 @@ export default function HallOfShamePage() {
         <div className="max-w-4xl mx-auto space-y-6">
           {submissions.map((sub, idx) => (
             <div key={sub.id} className="bg-gray-800 rounded-lg overflow-hidden">
+              {/* Header */}
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 border-b border-gray-700">
                 <div className="flex items-center gap-4 flex-wrap">
                   <span className={`font-bold text-center inline-block ${
@@ -124,13 +125,19 @@ export default function HallOfShamePage() {
                 </div>
                 <button
                   onClick={() => handleLike(sub.id)}
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors shrink-0 self-start sm:self-auto"
+                  disabled={likedIds.has(sub.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors shrink-0 self-start sm:self-auto ${
+                    likedIds.has(sub.id)
+                      ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
                 >
                   <span className="text-xl">🔥</span>
                   <span className="font-bold">{sub.likes}</span>
                 </button>
               </div>
 
+              {/* Content */}
               <div className="p-4 space-y-4">
                 <pre className="bg-gray-950 p-4 rounded text-sm overflow-x-auto">
                   <code className="text-green-400">
@@ -157,7 +164,7 @@ export default function HallOfShamePage() {
                     onClick={() => toggleExpand(sub.id)}
                     className="text-gray-400 hover:text-white font-medium"
                   >
-                    {expandedId === sub.id ? 'Hide comments ↑' : 'Comments ↓'}
+                    {expandedId === sub.id ? 'Hide comments ↑' : `Comments (${(comments[sub.id] || []).length}) ↓`}
                   </button>
                 </div>
               </div>
@@ -165,8 +172,9 @@ export default function HallOfShamePage() {
               {/* Comments Section */}
               {expandedId === sub.id && (
                 <div className="p-4 bg-gray-850 border-t border-gray-700 space-y-4">
-                  {/* Existing comments */}
-                  {(comments[sub.id] || []).length > 0 && (
+                  {comments[sub.id] === undefined ? (
+                    <p className="text-gray-500 text-sm">Loading comments...</p>
+                  ) : (comments[sub.id] || []).length > 0 ? (
                     <div className="space-y-2">
                       {(comments[sub.id] || []).map((c) => (
                         <div key={c.id} className="bg-gray-700 p-3 rounded text-sm">
@@ -178,21 +186,23 @@ export default function HallOfShamePage() {
                         </div>
                       ))}
                     </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No comments yet. Be the first!</p>
                   )}
 
-                  {/* Add comment */}
+                  {/* Comment Form */}
                   <div className="space-y-2">
                     <input
                       type="text"
-                      value={commentAuthor}
-                      onChange={(e) => setCommentAuthor(e.target.value)}
+                      value={commentForms[sub.id]?.authorName || ''}
+                      onChange={(e) => updateCommentForm(sub.id, { authorName: e.target.value })}
                       placeholder="Your name..."
                       maxLength={50}
                       className="w-full p-2 rounded bg-gray-700 border border-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                     <textarea
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
+                      value={commentForms[sub.id]?.text || ''}
+                      onChange={(e) => updateCommentForm(sub.id, { text: e.target.value })}
                       placeholder="Leave a comment..."
                       maxLength={500}
                       rows={2}
@@ -200,7 +210,7 @@ export default function HallOfShamePage() {
                     />
                     <button
                       onClick={() => submitComment(sub.id)}
-                      disabled={!newComment.trim() || !commentAuthor.trim()}
+                      disabled={!commentForms[sub.id]?.text?.trim() || !commentForms[sub.id]?.authorName?.trim()}
                       className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded text-sm font-bold disabled:opacity-50 transition-colors"
                     >
                       Post Comment

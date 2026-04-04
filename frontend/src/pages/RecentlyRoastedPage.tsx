@@ -1,29 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getRecentlyRoasted, likeSubmission } from '../services/api';
-
-interface Submission {
-  id: string;
-  code: string;
-  language: string;
-  roast: string;
-  authorName?: string;
-  likes: number;
-  spaghettiScore: number;
-  createdAt: string;
-}
+import type { Submission } from '../types';
 
 export default function RecentlyRoastedPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
-  const handleLike = async (id: string) => {
+  const handleLike = useCallback(async (id: string) => {
+    if (likedIds.has(id)) return;
     const { likes } = await likeSubmission(id);
-    setSubmissions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, likes } : s))
-    );
-  };
+    setLikedIds((prev) => new Set(prev).add(id));
+    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, likes } : s)));
+  }, [likedIds]);
 
   useEffect(() => {
     getRecentlyRoasted()
@@ -84,7 +75,12 @@ export default function RecentlyRoastedPage() {
                   </span>
                   <button
                     onClick={() => handleLike(sub.id)}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors shrink-0"
+                    disabled={likedIds.has(sub.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors shrink-0 ${
+                      likedIds.has(sub.id)
+                        ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                        : 'bg-red-600 hover:bg-red-700'
+                    }`}
                   >
                     <span className="text-xl">🔥</span>
                     <span className="font-bold">{sub.likes}</span>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitCode } from '../services/api';
 
@@ -27,10 +27,12 @@ const funPlaceholders = [
   '// You inherited this codebase?\n// Our condolences. Show us.',
   '// "Temporary hack" from 2019?\n// Nothing is permanent.',
   '// console.log() debugging at its finest?\n// Respect.',
-  '// 12 nested for-loans? We lost count.\n// Show us the abomination.',
+  '// 12 nested for-loops? We lost count.\n// Show us the abomination.',
   '// "I\'ll refactor later" - said no one ever?\n// Today is that day.',
   '// Code so clever even you don\'t get it?\n// Let\'s fix that.',
 ];
+
+const MAX_CODE_LENGTH = 50000;
 
 export default function HomePage() {
   const [code, setCode] = useState('');
@@ -39,18 +41,35 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
   const navigate = useNavigate();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Rotate placeholders every 4s, pause when focused
   useEffect(() => {
-    const interval = setInterval(() => {
+    if (isFocused) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+
+    intervalRef.current = setInterval(() => {
       setPlaceholderIdx((prev) => (prev + 1) % funPlaceholders.length);
     }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isFocused]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (code.length > MAX_CODE_LENGTH) {
+      setError('Code is too long (max 50KB)');
+      return;
+    }
+
     setLoading(true);
     try {
       const submission = await submitCode(code, language, spiciness);
@@ -68,6 +87,7 @@ export default function HomePage() {
       <p className="text-gray-400 text-center mb-8">Submit your worst code. Get roasted.</p>
 
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-4">
+        {/* Language Selector */}
         <select
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
@@ -103,26 +123,36 @@ export default function HomePage() {
           ))}
         </div>
 
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Tab') {
-              e.preventDefault();
-              const target = e.target as HTMLTextAreaElement;
-              const start = target.selectionStart;
-              const end = target.selectionEnd;
-              const newValue = code.slice(0, start) + '  ' + code.slice(end);
-              setCode(newValue);
-              setTimeout(() => {
-                target.selectionStart = target.selectionEnd = start + 2;
-              }, 0);
-            }
-          }}
-          placeholder={funPlaceholders[placeholderIdx]}
-          className="w-full h-64 p-4 rounded bg-gray-800 border border-gray-700 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-          required
-        />
+        {/* Code Input */}
+        <div>
+          <textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Tab') {
+                e.preventDefault();
+                const target = e.target as HTMLTextAreaElement;
+                const start = target.selectionStart;
+                const end = target.selectionEnd;
+                const newValue = code.slice(0, start) + '  ' + code.slice(end);
+                setCode(newValue);
+                setTimeout(() => {
+                  target.selectionStart = target.selectionEnd = start + 2;
+                }, 0);
+              }
+            }}
+            placeholder={funPlaceholders[placeholderIdx]}
+            maxLength={MAX_CODE_LENGTH}
+            className="w-full h-64 p-4 rounded bg-gray-800 border border-gray-700 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            required
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1 px-1">
+            <span>{code.length.toLocaleString()} / {MAX_CODE_LENGTH.toLocaleString()} characters</span>
+            <span>{code.length > MAX_CODE_LENGTH * 0.9 ? '⚠️ Almost at limit' : ''}</span>
+          </div>
+        </div>
 
         {error && <p className="text-red-400 text-center">{error}</p>}
 

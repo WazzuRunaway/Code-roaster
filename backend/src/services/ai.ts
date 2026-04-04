@@ -1,25 +1,62 @@
 import OpenAI from 'openai';
 
-function getOpenAIClient(): OpenAI {
-  const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+// ─── Types ──────────────────────────────────────────────────────────
+export interface RoastResult {
+  roast: string;
+  solution: string;
+  spaghettiScore: number;
+}
+
+// ─── Config ─────────────────────────────────────────────────────────
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b';
+const BASE_TIMEOUT = 60_000; // 60 seconds per attempt
+const MAX_RETRIES = 3;
+
+// ─── Helpers ────────────────────────────────────────────────────────
+function getOpenAIClient(timeoutMs: number): OpenAI {
   return new OpenAI({
     apiKey: 'ollama',
-    baseURL: `${ollamaUrl}/v1`,
+    baseURL: `${OLLAMA_URL}/v1`,
+    timeout: timeoutMs,
   });
 }
 
-const mockScores: Record<string, number> = { mild: 40, medium: 65, hot: 90 };
+const FALLBACK_ROASTS: Record<string, string> = {
+  mild: 'This {lang} code is quite safe, like a well-worn pair of slippers. There\'s room for improvement, but nothing to worry about.',
+  medium: 'Oh wow, this {lang} code is... something. I\'ve seen better logic in a coin flip. The variable naming suggests a random number generator wrote this at 3 AM.',
+  hot: 'This {lang} code should come with a health warning. I\'ve seen cleaner spaghetti at a college dorm. If bad code was a superpower, you\'d be unstoppable.',
+};
 
-function makeFallback(code: string, language: string, spiciness: string) {
+const FALLBACK_SOLUTION = '// Refactored version\n// TODO: Make sure Ollama is running: ollama serve\n// Then pull the model: ollama pull qwen2.5-coder:3b\n\nfunction improved() {\n  // Clean, readable, actually works\n  return true;\n}';
+
+function makeFallback(language: string, spiciness: string): RoastResult {
+  const baseScores: Record<string, number> = { mild: 40, medium: 65, hot: 90 };
+  const score = (baseScores[spiciness] || 65) + Math.floor(Math.random() * 10 - 5);
   return {
-    roast: `Oh wow, this ${language} code is... something. I've seen better logic in a coin flip. The variable naming suggests a random number generator wrote this at 3 AM. But hey, at least it exists — unlike my motivation on Monday mornings.`,
-    solution: `// Refactored version\n// TODO: Start Ollama and run: ollama pull qwen2.5-coder:3b\n\nfunction improved() {\n  // Clean, readable, actually works\n  return true;\n}`,
-    spaghettiScore: mockScores[spiciness] || 65,
+    roast: (FALLBACK_ROASTS[spiciness] || FALLBACK_ROASTS.medium).replace('{lang}', language),
+    solution: FALLBACK_SOLUTION,
+    spaghettiScore: Math.max(0, Math.min(100, score)),
   };
 }
 
-export async function generateRoast(code: string, language: string, spiciness: string = 'medium') {
-  const model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b';
+function parseRoastResponse(content: string): RoastResult {
+  const cleaned = content.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+  const parsed = JSON.parse(cleaned) as Partial<RoastResult>;
+
+  if (!parsed.roast || !parsed.solution || typeof parsed.spaghettiScore !== 'number') {
+    throw new Error('Invalid response structure from AI');
+  }
+
+  return {
+    roast: String(parsed.roast),
+    solution: String(parsed.solution),
+    spaghettiScore: Math.max(0, Math.min(100, parsed.spaghettiScore)),
+  };
+}
+
+// ─── Main Function ──────────────────────────────────────────────────
+export async function generateRoast(code: string, language: string, spiciness: string = 'medium'): Promise<RoastResult> {
   const toneMap: Record<string, string> = {
     mild: 'gentle and constructive, like a helpful mentor',
     medium: 'balanced with light sarcasm and humor',
@@ -38,37 +75,43 @@ Code:
 ${code}
 \`\`\`
 
-Respond in EXACTLY this JSON format (no extra text, no markdown wrapping). Escape all newlines in strings:
+Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
 {"spaghettiScore": 75, "roast": "your roast here", "solution": "the corrected code here"}`;
 
-  // Try up to 3 times with increasing timeouts
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const openai = getOpenAIClient();
+      const openai = getOpenAIClient(BASE_TIMEOUT * attempt);
       const response = await openai.chat.completions.create({
-        model,
+        model: OLLAMA_MODEL,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.8,
-        timeout: 120000 * attempt, // 2min, 4min, 6min
       });
 
       const content = response.choices[0]?.message?.content;
       if (!content) throw new Error('Empty response from AI');
 
-      const cleaned = content.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-      return JSON.parse(cleaned);
+      // Parse failures are immediate (no retry wait)
+      return parseRoastResponse(content);
     } catch (err: any) {
-      // If this was the last attempt, return fallback instead of throwing
-      if (attempt === 3) {
-        console.warn(`Ollama failed after ${attempt} attempts, using fallback:`, err.message);
-        return makeFallback(code, language, spiciness);
+      const isLastAttempt = attempt === MAX_RETRIES;
+      const isParseError = err.message.includes('JSON') || err.message.includes('Invalid response');
+
+      if (isLastAttempt) {
+        console.warn(`Ollama failed after ${MAX_RETRIES} attempts, using fallback:`, err.message);
+        return makeFallback(language, spiciness);
       }
-      console.warn(`Ollama attempt ${attempt} failed, retrying... (${err.message})`);
-      // Wait before retry (Ollama may still be loading the model)
+
+      // Don't waste time retrying on parse errors
+      if (isParseError) {
+        console.warn('AI returned unparseable response, using fallback');
+        return makeFallback(language, spiciness);
+      }
+
+      console.warn(`Ollama attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${3 * attempt}s... (${err.message})`);
       await new Promise((r) => setTimeout(r, 3000 * attempt));
     }
   }
 
-  // Should never reach here, but just in case
-  return makeFallback(code, language, spiciness);
+  // Should never reach here
+  return makeFallback(language, spiciness);
 }
