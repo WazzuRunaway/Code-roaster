@@ -17,8 +17,9 @@ COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-RUN npx prisma migrate deploy
 RUN npx prisma generate
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh && chown appuser:appgroup docker-entrypoint.sh
 USER appuser
 EXPOSE 3000
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

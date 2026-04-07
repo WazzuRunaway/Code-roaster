@@ -78,12 +78,9 @@ EOF
 
 # Start everything
 docker-compose -f docker-compose.prod.yml up -d --build
-
-# Apply migrations
-docker-compose -f docker-compose.prod.yml exec backend npx prisma migrate deploy
 ```
 
-The site will be available at http://10.93.24.228
+Migrations run automatically on container startup. The site will be available at http://10.93.24.228
 
 ## Tech stack
 
