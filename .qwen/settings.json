@@ -14,7 +14,8 @@
       "Bash(npm uninstall *)",
       "Bash(ollama *)",
       "Bash(findstr *)",
-      "Bash(mkdir *)"
+      "Bash(mkdir *)",
+      "Bash(start *)"
     ]
   },
   "$version": 3

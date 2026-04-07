@@ -12,7 +12,7 @@ const LLM_URL = process.env.LLM_URL || '';
 const LLM_MODEL = process.env.LLM_MODEL || '';
 const LLM_API_KEY = process.env.LLM_API_KEY || '';
 
-// Auto-detect provider from key prefix or custom URL
+// Auto-detect provider
 const PROVIDER = LLM_URL
   ? 'custom'
   : LLM_API_KEY.startsWith('sk-or-')
@@ -27,43 +27,122 @@ const PROVIDER = LLM_URL
             ? 'generic'
             : 'offline';
 
-const BASE_TIMEOUT = 60_000; // 60 seconds per attempt
+const BASE_TIMEOUT = 60_000;
 const MAX_RETRIES = 3;
 
-function getProviderConfig() {
+// ─── OpenRouter Free Model Discovery ────────────────────────────────
+const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
+
+const FREE_MODEL_PRIORITY = [
+  'google/gemma-3-27b-it:free',
+  'openrouter/free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'minimax/minimax-m2.5:free',
+  'stepfun/step-3.5-flash:free',
+  'liquid/lfm-2.5-1.2b-instruct:free',
+];
+
+let _discoveredModel: string | null = null;
+let _discoveryPromise: Promise<string> | null = null;
+
+async function discoverFreeModel(): Promise<string> {
+  if (_discoveredModel) return _discoveredModel;
+  if (_discoveryPromise) return _discoveryPromise;
+
+  _discoveryPromise = (async () => {
+    try {
+      console.log('🔍 Discovering free OpenRouter models...');
+      const res = await fetch(OPENROUTER_MODELS_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json() as { data: Array<{
+        id: string;
+        context_length: number;
+        pricing: { prompt: string; completion: string };
+      }> };
+
+      const availableIds = new Set((data.data || []).map((m: { id: string }) => m.id));
+      const freeModels = (data.data || [])
+        .filter((m) => m.pricing.prompt === '0' && m.pricing.completion === '0')
+        .map((m) => m.id);
+
+      console.log(`✅ Found ${freeModels.length} free models`);
+
+      // Try priority list first (known-working models)
+      for (const modelId of FREE_MODEL_PRIORITY) {
+        if (availableIds.has(modelId) && freeModels.includes(modelId)) {
+          console.log(`✅ Using priority model: ${modelId}`);
+          _discoveredModel = modelId;
+          return modelId;
+        }
+      }
+
+      // Fall back to largest context window
+      const sorted = (data.data || [])
+        .filter((m) => m.pricing.prompt === '0' && m.pricing.completion === '0')
+        .sort((a, b) => (b.context_length || 0) - (a.context_length || 0));
+
+      if (sorted.length > 0) {
+        const best = sorted[0];
+        console.log(`✅ Using largest context model: ${best.id} (ctx: ${best.context_length})`);
+        _discoveredModel = best.id;
+        return best.id;
+      }
+
+      throw new Error('No free models found');
+    } catch (err: any) {
+      console.warn(`⚠️  Model discovery failed: ${err.message}. Using hardcoded fallback.`);
+      _discoveredModel = 'google/gemma-3-27b-it:free';
+      return _discoveredModel;
+    }
+  })();
+
+  return _discoveryPromise;
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────
+async function getOpenAIClient(timeoutMs: number): Promise<{ client: OpenAI; model: string } | null> {
   switch (PROVIDER) {
-    case 'openrouter':
-      return { apiKey: LLM_API_KEY, baseURL: 'https://openrouter.ai/api/v1', model: LLM_MODEL || 'qwen/qwen-2.5-72b-instruct' };
+    case 'openrouter': {
+      const model = LLM_MODEL || await discoverFreeModel();
+      return {
+        client: new OpenAI({ apiKey: LLM_API_KEY, baseURL: 'https://openrouter.ai/api/v1', timeout: timeoutMs }),
+        model,
+      };
+    }
     case 'openai':
-      return { apiKey: LLM_API_KEY, baseURL: undefined, model: LLM_MODEL || 'gpt-4o-mini' };
+      return {
+        client: new OpenAI({ apiKey: LLM_API_KEY, timeout: timeoutMs }),
+        model: LLM_MODEL || 'gpt-4o-mini',
+      };
     case 'groq':
-      return { apiKey: LLM_API_KEY, baseURL: 'https://api.groq.com/openai/v1', model: LLM_MODEL || 'llama-3.3-70b-versatile' };
+      return {
+        client: new OpenAI({ apiKey: LLM_API_KEY, baseURL: 'https://api.groq.com/openai/v1', timeout: timeoutMs }),
+        model: LLM_MODEL || 'llama-3.3-70b-versatile',
+      };
     case 'gemini':
-      return { apiKey: LLM_API_KEY, baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: LLM_MODEL || 'gemini-2.0-flash' };
+      return {
+        client: new OpenAI({ apiKey: LLM_API_KEY, baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', timeout: timeoutMs }),
+        model: LLM_MODEL || 'gemini-2.0-flash',
+      };
     case 'custom':
-      return { apiKey: LLM_API_KEY || 'ollama', baseURL: `${LLM_URL}/v1`, model: LLM_MODEL || 'qwen2.5-coder:3b' };
+      return {
+        client: new OpenAI({ apiKey: LLM_API_KEY || 'ollama', baseURL: `${LLM_URL}/v1`, timeout: timeoutMs }),
+        model: LLM_MODEL || 'qwen2.5-coder:3b',
+      };
     default:
       return null;
   }
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────
-function getOpenAIClient(timeoutMs: number): { client: OpenAI; model: string } | null {
-  const config = getProviderConfig();
-  if (!config) return null;
-  return {
-    client: new OpenAI({ apiKey: config.apiKey, baseURL: config.baseURL, timeout: timeoutMs }),
-    model: config.model,
-  };
-}
-
+// ─── Fallback ───────────────────────────────────────────────────────
 const FALLBACK_ROASTS: Record<string, string> = {
   mild: 'This {lang} code is quite safe, like a well-worn pair of slippers. There\'s room for improvement, but nothing to worry about.',
   medium: 'Oh wow, this {lang} code is... something. I\'ve seen better logic in a coin flip. The variable naming suggests a random number generator wrote this at 3 AM.',
   hot: 'This {lang} code should come with a health warning. I\'ve seen cleaner spaghetti at a college dorm. If bad code was a superpower, you\'d be unstoppable.',
 };
 
-const FALLBACK_SOLUTION = '// Refactored version\n// TODO: Configure LLM_API_KEY in .env\n// Providers: OpenRouter, OpenAI, Groq, Gemini, or local Ollama\n\nfunction improved() {\n  // Clean, readable, actually works\n  return true;\n}';
+const FALLBACK_SOLUTION = '// Refactored version\n// TODO: Configure LLM_API_KEY in .env for real AI\n\nfunction improved() {\n  // Clean, readable, actually works\n  return true;\n}';
 
 function makeFallback(language: string, spiciness: string): RoastResult {
   const baseScores: Record<string, number> = { mild: 40, medium: 65, hot: 90 };
@@ -115,9 +194,9 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const clientConfig = getOpenAIClient(BASE_TIMEOUT * attempt);
+      const clientConfig = await getOpenAIClient(BASE_TIMEOUT * attempt);
       if (!clientConfig) {
-        console.warn(`LLM provider: ${PROVIDER} — no valid API key configured, using fallback`);
+        console.warn(`LLM provider: ${PROVIDER} — no valid API key, using fallback`);
         return makeFallback(language, spiciness);
       }
 
@@ -131,7 +210,6 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
       const content = response.choices[0]?.message?.content;
       if (!content) throw new Error('Empty response from AI');
 
-      // Parse failures are immediate (no retry wait)
       return parseRoastResponse(content);
     } catch (err: any) {
       const isLastAttempt = attempt === MAX_RETRIES;
@@ -142,7 +220,6 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
         return makeFallback(language, spiciness);
       }
 
-      // Don't waste time retrying on parse errors
       if (isParseError) {
         console.warn('AI returned unparseable response, using fallback');
         return makeFallback(language, spiciness);
@@ -153,6 +230,5 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
     }
   }
 
-  // Should never reach here
   return makeFallback(language, spiciness);
 }
