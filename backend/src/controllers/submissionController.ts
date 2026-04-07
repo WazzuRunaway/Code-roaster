@@ -155,8 +155,15 @@ export const getRecentlyRoasted = asyncHandler(async (_req, res) => {
 });
 
 export const getHallOfShame = asyncHandler(async (_req, res) => {
+  // Only show today's submissions (Hall of Shame resets daily)
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
   const submissions = await prisma.submission.findMany({
-    where: { isPublic: true },
+    where: {
+      isPublic: true,
+      createdAt: { gte: startOfToday },
+    },
     orderBy: { likes: 'desc' },
     take: 100,
     select: {

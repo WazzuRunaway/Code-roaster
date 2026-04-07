@@ -1,15 +1,22 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getRecentlyRoasted, likeSubmission } from '../services/api';
-import type { Submission } from '../types';
+import { getRecentlyRoasted, likeSubmission, getComments, addComment } from '../services/api';
+import type { Submission, Comment } from '../types';
+
+interface CommentFormState {
+  authorName: string;
+  text: string;
+}
 
 export default function RecentlyRoastedPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [commentForms, setCommentForms] = useState<Record<string, CommentFormState>>({});
 
-  // Poll every 10 seconds for real-time updates from other devices
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchSubmissions = useCallback(async () => {
@@ -23,9 +30,7 @@ export default function RecentlyRoastedPage() {
 
   useEffect(() => {
     fetchSubmissions().finally(() => setLoading(false));
-
     pollRef.current = setInterval(fetchSubmissions, 10000);
-
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -41,6 +46,46 @@ export default function RecentlyRoastedPage() {
       // Silently fail
     }
   }, [likedIds]);
+
+  const loadComments = useCallback(async (id: string) => {
+    if (comments[id]) return;
+    try {
+      const data = await getComments(id);
+      setComments((prev) => ({ ...prev, [id]: data }));
+    } catch {
+      // Silently fail
+    }
+  }, [comments]);
+
+  const toggleExpand = useCallback(async (id: string) => {
+    setExpandedId((prev) => {
+      if (prev === id) return null;
+      loadComments(id);
+      return id;
+    });
+  }, [loadComments]);
+
+  const updateCommentForm = useCallback((id: string, updates: Partial<CommentFormState>) => {
+    setCommentForms((prev) => ({
+      ...prev,
+      [id]: { ...(prev[id] || { authorName: '', text: '' }), ...updates },
+    }));
+  }, []);
+
+  const submitComment = useCallback(async (id: string) => {
+    const form = commentForms[id] || { authorName: '', text: '' };
+    if (!form.text.trim() || !form.authorName.trim()) return;
+    try {
+      const comment = await addComment(id, form.authorName.trim(), form.text.trim());
+      setComments((prev) => ({
+        ...prev,
+        [id]: [comment, ...(prev[id] || [])],
+      }));
+      updateCommentForm(id, { authorName: form.authorName, text: '' });
+    } catch {
+      // Silently fail
+    }
+  }, [commentForms, updateCommentForm]);
 
   if (loading) {
     return (
@@ -74,6 +119,7 @@ export default function RecentlyRoastedPage() {
         <div className="max-w-4xl mx-auto space-y-6">
           {submissions.map((sub) => (
             <div key={sub.id} className="bg-gray-800 rounded-lg overflow-hidden">
+              {/* Header */}
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 border-b border-gray-700">
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="bg-orange-600 px-3 py-1 rounded text-sm font-medium whitespace-nowrap">
@@ -100,7 +146,6 @@ export default function RecentlyRoastedPage() {
                         ? 'bg-red-900 border-2 border-red-700 cursor-not-allowed shadow-lg shadow-red-900/50'
                         : 'bg-red-600 hover:bg-red-700 hover:scale-105 active:scale-95'
                     }`}
-                    aria-label={`Like this submission. Current likes: ${sub.likes}`}
                   >
                     <span className={`text-xl transition-transform duration-300 ${
                       likedIds.has(sub.id) ? 'scale-125' : ''
@@ -112,6 +157,7 @@ export default function RecentlyRoastedPage() {
                 </div>
               </div>
 
+              {/* Content */}
               <div className="p-4 space-y-4">
                 <pre className="bg-gray-950 p-4 rounded text-sm overflow-x-auto">
                   <code className="text-green-400">
@@ -127,13 +173,68 @@ export default function RecentlyRoastedPage() {
                     : sub.roast}
                 </p>
 
-                <Link
-                  to={`/result/${sub.id}`}
-                  className="text-orange-400 hover:underline font-medium"
-                >
-                  See full roast →
-                </Link>
+                <div className="flex gap-3">
+                  <Link to={`/result/${sub.id}`} className="text-orange-400 hover:underline font-medium">
+                    See full roast →
+                  </Link>
+                  <button
+                    onClick={() => toggleExpand(sub.id)}
+                    className="text-gray-400 hover:text-white font-medium"
+                  >
+                    {expandedId === sub.id ? 'Hide comments ↑' : `Comments (${(comments[sub.id] || []).length}) ↓`}
+                  </button>
+                </div>
               </div>
+
+              {/* Comments Section */}
+              {expandedId === sub.id && (
+                <div className="p-4 bg-gray-850 border-t border-gray-700 space-y-4">
+                  {comments[sub.id] === undefined ? (
+                    <p className="text-gray-500 text-sm">Loading comments...</p>
+                  ) : (comments[sub.id] || []).length > 0 ? (
+                    <div className="space-y-2">
+                      {(comments[sub.id] || []).map((c) => (
+                        <div key={c.id} className="bg-gray-700 p-3 rounded text-sm">
+                          <span className="text-purple-400 font-medium">{c.authorName}</span>
+                          <span className="text-gray-500 text-xs ml-2">
+                            {new Date(c.createdAt).toLocaleString()}
+                          </span>
+                          <p className="text-gray-300 mt-1">{c.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No comments yet. Be the first!</p>
+                  )}
+
+                  {/* Comment Form */}
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={commentForms[sub.id]?.authorName || ''}
+                      onChange={(e) => updateCommentForm(sub.id, { authorName: e.target.value })}
+                      placeholder="Your name..."
+                      maxLength={50}
+                      className="w-full p-2 rounded bg-gray-700 border border-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                    <textarea
+                      value={commentForms[sub.id]?.text || ''}
+                      onChange={(e) => updateCommentForm(sub.id, { text: e.target.value })}
+                      placeholder="Leave a comment..."
+                      maxLength={500}
+                      rows={2}
+                      className="w-full p-2 rounded bg-gray-700 border border-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                    <button
+                      onClick={() => submitComment(sub.id)}
+                      disabled={!commentForms[sub.id]?.text?.trim() || !commentForms[sub.id]?.authorName?.trim()}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded text-sm font-bold disabled:opacity-50 transition-colors"
+                    >
+                      Post Comment
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

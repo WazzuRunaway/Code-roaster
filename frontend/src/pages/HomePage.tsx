@@ -2,7 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitCode } from '../services/api';
 
-const languages = ['JavaScript', 'Python', 'Java', 'C++', 'TypeScript', 'Go', 'Rust', 'PHP', 'C#'];
+const languages = [
+  'JavaScript', 'TypeScript', 'Python', 'Java', 'C', 'C++', 'C#',
+  'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'Dart',
+  'R', 'MATLAB', 'Scala', 'Perl', 'Lua', 'Haskell',
+  'Shell', 'PowerShell', 'SQL', 'HTML/CSS', 'React',
+];
 const spicinessLevels = [
   { value: 'mild', label: '🌶️ Mild', desc: 'Gentle' },
   { value: 'medium', label: '🌶️🌶️ Medium', desc: 'Balanced' },
