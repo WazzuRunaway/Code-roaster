@@ -42,8 +42,21 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
+  const [isLangOpen, setIsLangOpen] = useState(false);
   const navigate = useNavigate();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setIsLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   // Rotate placeholders every 4s, pause when focused
   useEffect(() => {
@@ -87,21 +100,51 @@ export default function HomePage() {
       <p className="text-gray-400 text-center mb-8">Submit your worst code. Get roasted.</p>
 
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-4">
-        {/* Language Selector */}
-        <div className="relative group">
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 appearance-none cursor-pointer transition-all duration-300 hover:border-orange-500 hover:bg-gray-750"
+        {/* Language Selector - custom animated dropdown */}
+        <div className="relative" ref={langRef}>
+          <button
+            type="button"
+            onClick={() => setIsLangOpen(!isLangOpen)}
+            className="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer transition-all duration-300 flex items-center justify-between hover:border-orange-500"
           >
-            {languages.map((lang) => (
-              <option key={lang} value={lang}>{lang}</option>
-            ))}
-          </select>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            <svg className="w-4 h-4 text-gray-400 transition-transform duration-300 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span>{language}</span>
+            <svg
+              className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${
+                isLangOpen ? 'rotate-180' : 'rotate-0'
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
+          </button>
+
+          {/* Dropdown */}
+          <div
+            className={`absolute z-10 w-full mt-1 rounded bg-gray-800 border border-gray-700 shadow-xl overflow-hidden transition-all duration-300 origin-top ${
+              isLangOpen
+                ? 'opacity-100 scale-y-100 max-h-60'
+                : 'opacity-0 scale-y-0 max-h-0 pointer-events-none'
+            }`}
+          >
+            {languages.map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => {
+                  setLanguage(lang);
+                  setIsLangOpen(false);
+                }}
+                className={`w-full text-left p-3 transition-colors duration-150 ${
+                  language === lang
+                    ? 'bg-orange-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {lang}
+              </button>
+            ))}
           </div>
         </div>
 
