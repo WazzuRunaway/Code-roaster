@@ -8,18 +8,53 @@ export interface RoastResult {
 }
 
 // ─── Config ─────────────────────────────────────────────────────────
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b';
+const LLM_URL = process.env.LLM_URL || '';
+const LLM_MODEL = process.env.LLM_MODEL || '';
+const LLM_API_KEY = process.env.LLM_API_KEY || '';
+
+// Auto-detect provider from key prefix or custom URL
+const PROVIDER = LLM_URL
+  ? 'custom'
+  : LLM_API_KEY.startsWith('sk-or-')
+    ? 'openrouter'
+    : LLM_API_KEY.startsWith('gsk_')
+      ? 'groq'
+      : LLM_API_KEY.startsWith('sk-')
+        ? 'openai'
+        : LLM_API_KEY.startsWith('AIza')
+          ? 'gemini'
+          : LLM_API_KEY
+            ? 'generic'
+            : 'offline';
+
 const BASE_TIMEOUT = 60_000; // 60 seconds per attempt
 const MAX_RETRIES = 3;
 
+function getProviderConfig() {
+  switch (PROVIDER) {
+    case 'openrouter':
+      return { apiKey: LLM_API_KEY, baseURL: 'https://openrouter.ai/api/v1', model: LLM_MODEL || 'qwen/qwen-2.5-72b-instruct' };
+    case 'openai':
+      return { apiKey: LLM_API_KEY, baseURL: undefined, model: LLM_MODEL || 'gpt-4o-mini' };
+    case 'groq':
+      return { apiKey: LLM_API_KEY, baseURL: 'https://api.groq.com/openai/v1', model: LLM_MODEL || 'llama-3.3-70b-versatile' };
+    case 'gemini':
+      return { apiKey: LLM_API_KEY, baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: LLM_MODEL || 'gemini-2.0-flash' };
+    case 'custom':
+      return { apiKey: LLM_API_KEY || 'ollama', baseURL: `${LLM_URL}/v1`, model: LLM_MODEL || 'qwen2.5-coder:3b' };
+    default:
+      return null;
+  }
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────
-function getOpenAIClient(timeoutMs: number): OpenAI {
-  return new OpenAI({
-    apiKey: 'ollama',
-    baseURL: `${OLLAMA_URL}/v1`,
-    timeout: timeoutMs,
-  });
+function getOpenAIClient(timeoutMs: number): { client: OpenAI; model: string } | null {
+  const config = getProviderConfig();
+  if (!config) return null;
+  return {
+    client: new OpenAI({ apiKey: config.apiKey, baseURL: config.baseURL, timeout: timeoutMs }),
+    model: config.model,
+  };
 }
 
 const FALLBACK_ROASTS: Record<string, string> = {
@@ -28,7 +63,7 @@ const FALLBACK_ROASTS: Record<string, string> = {
   hot: 'This {lang} code should come with a health warning. I\'ve seen cleaner spaghetti at a college dorm. If bad code was a superpower, you\'d be unstoppable.',
 };
 
-const FALLBACK_SOLUTION = '// Refactored version\n// TODO: Make sure Ollama is running: ollama serve\n// Then pull the model: ollama pull qwen2.5-coder:3b\n\nfunction improved() {\n  // Clean, readable, actually works\n  return true;\n}';
+const FALLBACK_SOLUTION = '// Refactored version\n// TODO: Configure LLM_API_KEY in .env\n// Providers: OpenRouter, OpenAI, Groq, Gemini, or local Ollama\n\nfunction improved() {\n  // Clean, readable, actually works\n  return true;\n}';
 
 function makeFallback(language: string, spiciness: string): RoastResult {
   const baseScores: Record<string, number> = { mild: 40, medium: 65, hot: 90 };
@@ -80,9 +115,15 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const openai = getOpenAIClient(BASE_TIMEOUT * attempt);
-      const response = await openai.chat.completions.create({
-        model: OLLAMA_MODEL,
+      const clientConfig = getOpenAIClient(BASE_TIMEOUT * attempt);
+      if (!clientConfig) {
+        console.warn(`LLM provider: ${PROVIDER} — no valid API key configured, using fallback`);
+        return makeFallback(language, spiciness);
+      }
+
+      const { client, model } = clientConfig;
+      const response = await client.chat.completions.create({
+        model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.8,
       });
@@ -97,7 +138,7 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
       const isParseError = err.message.includes('JSON') || err.message.includes('Invalid response');
 
       if (isLastAttempt) {
-        console.warn(`Ollama failed after ${MAX_RETRIES} attempts, using fallback:`, err.message);
+        console.warn(`LLM failed after ${MAX_RETRIES} attempts (${PROVIDER}), using fallback:`, err.message);
         return makeFallback(language, spiciness);
       }
 
@@ -107,7 +148,7 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
         return makeFallback(language, spiciness);
       }
 
-      console.warn(`Ollama attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${3 * attempt}s... (${err.message})`);
+      console.warn(`LLM attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${3 * attempt}s... (${err.message})`);
       await new Promise((r) => setTimeout(r, 3000 * attempt));
     }
   }

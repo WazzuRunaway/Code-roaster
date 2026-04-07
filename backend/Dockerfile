@@ -9,8 +9,7 @@ RUN npm run build
 
 FROM node:20-alpine
 WORKDIR /app
-RUN apk add --no-cache curl && \
-    addgroup -S appgroup && \
+RUN addgroup -S appgroup && \
     adduser -S appuser -G appgroup && \
     chown -R appuser:appgroup /app
 COPY package*.json ./
@@ -18,8 +17,6 @@ RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 RUN npx prisma generate
-COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
 USER appuser
 EXPOSE 3000
-ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["node", "dist/index.js"]
