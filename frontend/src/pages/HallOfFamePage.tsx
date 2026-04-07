@@ -116,14 +116,14 @@ export default function HallOfShamePage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-4xl font-bold text-center mb-2">🏆 Hall of Shame</h1>
-      <p className="text-gray-400 text-center mb-8">Today's top roasts — resets at midnight</p>
+      <p className="text-gray-400 text-center mb-8">Top 100 roasts of all time</p>
 
       {submissions.length === 0 ? (
         <div className="text-center text-gray-500 mt-16">
           <p className="text-4xl mb-4">🏗️</p>
-          <p className="text-xl font-bold text-gray-400 mb-2">Hall of Shame is empty today</p>
+          <p className="text-xl font-bold text-gray-400 mb-2">Hall of Shame is empty</p>
           <p className="text-gray-500 mb-4">
-            Today's leaderboard is empty. The Hall of Shame resets every midnight.
+            No submissions yet.
           </p>
           <Link to="/" className="text-orange-400 hover:underline mt-4 inline-block">
             Submit code and get featured →
