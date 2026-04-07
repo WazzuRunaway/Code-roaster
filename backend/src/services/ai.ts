@@ -155,24 +155,34 @@ function makeFallback(language: string, spiciness: string): RoastResult {
 }
 
 function parseRoastResponse(content: string): RoastResult {
-  // Robust JSON extraction: find first { ... } block
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('No JSON found in AI response');
+  // Robust JSON extraction: find the outermost { ... } by counting braces
+  let depth = 0;
+  let start = -1;
+  for (let i = 0; i < content.length; i++) {
+    if (content[i] === '{') {
+      if (depth === 0) start = i;
+      depth++;
+    }
+    if (content[i] === '}') {
+      depth--;
+      if (depth === 0 && start >= 0) {
+        const jsonStr = content.slice(start, i + 1);
+        const parsed = JSON.parse(jsonStr) as Partial<RoastResult>;
+
+        if (!parsed.roast || !parsed.solution || typeof parsed.spaghettiScore !== 'number') {
+          throw new Error('Invalid response structure from AI');
+        }
+
+        return {
+          roast: String(parsed.roast),
+          solution: String(parsed.solution),
+          spaghettiScore: Math.max(0, Math.min(100, parsed.spaghettiScore)),
+        };
+      }
+    }
   }
 
-  const cleaned = jsonMatch[0].replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-  const parsed = JSON.parse(cleaned) as Partial<RoastResult>;
-
-  if (!parsed.roast || !parsed.solution || typeof parsed.spaghettiScore !== 'number') {
-    throw new Error('Invalid response structure from AI');
-  }
-
-  return {
-    roast: String(parsed.roast),
-    solution: String(parsed.solution),
-    spaghettiScore: Math.max(0, Math.min(100, parsed.spaghettiScore)),
-  };
+  throw new Error('No valid JSON found in AI response');
 }
 
 // ─── Main Function ──────────────────────────────────────────────────

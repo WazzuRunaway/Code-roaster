@@ -19,6 +19,11 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter((v): v is string => Boolean(v));
 
+if (allowedOrigins.length === 0 && process.env.NODE_ENV === 'production') {
+  console.error('❌ CRITICAL: FRONTEND_URL must be set in production');
+  process.exit(1);
+}
+
 if (allowedOrigins.length === 0) {
   console.warn('⚠️  No CORS origins configured — allowing all origins (dev mode)');
 }
@@ -54,7 +59,16 @@ app.use(express.json({ limit: '1mb' }));
 app.use('/api', submissionRoutes);
 
 // ─── Health Check ───────────────────────────────────────────────────
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+import { prisma } from './utils/prisma';
+
+app.get('/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok' });
+  } catch {
+    res.status(503).json({ status: 'error', database: 'disconnected' });
+  }
+});
 
 // ─── 404 Handler ────────────────────────────────────────────────────
 app.use((_req, res) => {

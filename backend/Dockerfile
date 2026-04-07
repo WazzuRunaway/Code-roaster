@@ -4,6 +4,7 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 COPY tsconfig.json ./
+COPY prisma ./prisma
 RUN npx prisma generate
 RUN npm run build
 
@@ -16,6 +17,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+RUN npx prisma migrate deploy
 RUN npx prisma generate
 USER appuser
 EXPOSE 3000

@@ -32,7 +32,7 @@ export default function ResultPage() {
     setShareError('');
     setSharing(true);
     try {
-      const updated = await publishSubmission(id, authorName.trim().slice(0, 50));
+      const updated = await publishSubmission(id, authorName.trim());
       setSubmission(updated);
       setShared(true);
     } catch {
@@ -44,9 +44,13 @@ export default function ResultPage() {
 
   const handleCopySolution = useCallback(async () => {
     if (!submission?.solution) return;
-    await navigator.clipboard.writeText(submission.solution);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(submission.solution);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API failed — silently ignore
+    }
   }, [submission?.solution]);
 
   const spiceLabel = (score: number) => {

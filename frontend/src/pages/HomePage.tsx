@@ -80,26 +80,27 @@ export default function HomePage() {
     };
   }, [isFocused]);
 
+  const [codeWarning, setCodeWarning] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setCodeWarning('');
 
     if (code.length > MAX_CODE_LENGTH) {
       setError(`Code is too long (max ${MAX_CODE_LENGTH.toLocaleString()} chars)`);
       return;
     }
     if (code.length > SOFT_CODE_WARNING) {
-      setError(`Code is quite long (${code.length.toLocaleString()} chars). This may use a lot of AI credits. Consider submitting a shorter snippet.`);
-    } else {
-      setError('');
+      setCodeWarning(`Code is quite long (${code.length.toLocaleString()} chars). This may use a lot of AI credits.`);
     }
 
     setLoading(true);
     try {
       const submission = await submitCode(code, language, spiciness);
       navigate(`/result/${submission.id}`);
-    } catch {
-      setError('The roast got stuck in the oven. Try again!');
+    } catch (err: any) {
+      setError(err.message || 'The roast got stuck in the oven. Try again!');
     } finally {
       setLoading(false);
     }
@@ -220,6 +221,7 @@ export default function HomePage() {
         </div>
 
         {error && <p className="text-red-400 text-center">{error}</p>}
+        {codeWarning && <p className="text-orange-400 text-center">{codeWarning}</p>}
 
         <button
           type="submit"
