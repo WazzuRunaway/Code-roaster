@@ -14,39 +14,6 @@ function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => P
   };
 }
 
-// ─── Daily Reset Logic ──────────────────────────────────────────────
-async function resetLikesIfNewDay() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const settings = await prisma.systemSettings.findUnique({
-    where: { id: 'global' },
-  });
-
-  if (!settings) {
-    // Create settings row if missing
-    await prisma.systemSettings.create({
-      data: { id: 'global', lastLikeReset: new Date() },
-    });
-    return;
-  }
-
-  const lastReset = new Date(settings.lastLikeReset);
-  lastReset.setHours(0, 0, 0, 0);
-
-  if (today.getTime() !== lastReset.getTime()) {
-    // It's a new day — reset all likes and update timestamp
-    await prisma.submission.updateMany({
-      data: { likes: 0 },
-    });
-    await prisma.systemSettings.update({
-      where: { id: 'global' },
-      data: { lastLikeReset: new Date() },
-    });
-    console.log(`🔄 Daily likes reset at ${today.toISOString()}`);
-  }
-}
-
 // ─── Controllers ────────────────────────────────────────────────────
 export const submitCode = asyncHandler(async (req, res) => {
   const { code, language, spiciness } = req.body;
@@ -122,9 +89,6 @@ export const publishSubmission = asyncHandler(async (req, res) => {
 export const likeSubmission = asyncHandler(async (req, res) => {
   const id = parseId(req);
 
-  // Reset likes if it's a new day
-  await resetLikesIfNewDay();
-
   try {
     const submission = await prisma.submission.update({
       where: { id },
@@ -191,18 +155,8 @@ export const getRecentlyRoasted = asyncHandler(async (_req, res) => {
 });
 
 export const getHallOfShame = asyncHandler(async (_req, res) => {
-  // Reset likes if it's a new day
-  await resetLikesIfNewDay();
-
-  // Only show today's submissions (cleared daily)
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
   const submissions = await prisma.submission.findMany({
-    where: {
-      isPublic: true,
-      createdAt: { gte: startOfToday },
-    },
+    where: { isPublic: true },
     orderBy: { likes: 'desc' },
     take: 100,
     select: {
