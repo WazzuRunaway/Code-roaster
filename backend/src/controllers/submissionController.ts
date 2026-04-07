@@ -106,7 +106,7 @@ export const getComments = asyncHandler(async (req, res) => {
 
   const comments = await prisma.comment.findMany({
     where: { submissionId: id },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: 'asc' },
   });
 
   res.json(comments);
