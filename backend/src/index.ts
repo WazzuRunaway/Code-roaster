@@ -55,6 +55,14 @@ app.use('/api', apiLimiter);
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '1mb' }));
 
+// ─── Disable caching for all API routes ─────────────────────────────
+app.use('/api', (_req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
 // ─── Routes ─────────────────────────────────────────────────────────
 app.use('/api', submissionRoutes);
 
