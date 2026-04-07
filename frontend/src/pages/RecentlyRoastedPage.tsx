@@ -181,7 +181,7 @@ export default function RecentlyRoastedPage() {
                     onClick={() => toggleExpand(sub.id)}
                     className="text-gray-400 hover:text-white font-medium"
                   >
-                    {expandedId === sub.id ? 'Hide comments ↑' : `Comments (${(comments[sub.id] || []).length}) ↓`}
+                    {expandedId === sub.id ? 'Hide comments ↑' : 'Comments ↓'}
                   </button>
                 </div>
               </div>
