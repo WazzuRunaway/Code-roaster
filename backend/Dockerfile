@@ -14,10 +14,9 @@ RUN addgroup -S appgroup && \
     adduser -S appuser -G appgroup && \
     chown -R appuser:appgroup /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production && npm install prisma@5.22.0
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-RUN npx prisma generate
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh && chown appuser:appgroup docker-entrypoint.sh
 USER appuser
