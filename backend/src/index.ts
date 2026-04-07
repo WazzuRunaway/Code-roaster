@@ -13,19 +13,18 @@ const app = express();
 // ─── Security ───────────────────────────────────────────────────────
 app.use(helmet());
 
+// Trust proxy (nginx sets X-Forwarded-For)
+app.set('trust proxy', 1);
+
 // ─── CORS ───────────────────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://10.93.24.228',
   process.env.FRONTEND_URL,
 ].filter((v): v is string => Boolean(v));
 
-if (allowedOrigins.length === 0 && process.env.NODE_ENV === 'production') {
-  console.error('❌ CRITICAL: FRONTEND_URL must be set in production');
-  process.exit(1);
-}
-
 if (allowedOrigins.length === 0) {
-  console.warn('⚠️  No CORS origins configured — allowing all origins (dev mode)');
+  console.warn('⚠️  No CORS origins configured — allowing all origins');
 }
 
 app.use(cors({
