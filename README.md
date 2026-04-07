@@ -4,57 +4,57 @@
 
 **Live site:** http://10.93.24.228
 
-## Что это?
+## What is it?
 
-CodeRoast — сайт, где разработчики кидают свой худший код и получают от ИИ:
-- 🔥 **Роаст** — смешной разбор ошибок
-- ✅ **Решение** — исправленный код с пояснениями
-- 🍝 **Spaghetti Score** — оценка «запутанности» от 0 до 100
-- 🌶️ **Выбор тона** — нежный, средний или жёсткий
+CodeRoast is a platform where developers submit their worst code and get AI-powered feedback:
+- 🔥 **Roast** — a funny, sarcastic breakdown of your mistakes
+- ✅ **Solution** — corrected code with explanations
+- 🍝 **Spaghetti Score** — a "messiness" rating from 0 to 100
+- 🌶️ **Spiciness selector** — choose the AI tone: mild, medium, or hot
 
-## Как пользоваться
+## How to use
 
-1. Зайди на **http://10.93.24.228**
-2. Выбери язык программирования
-3. Вставь свой код
-4. Выбери остроту: 🌶️ Baby Spice / 🌶️🌶️ Code Salsa / 🌶️🌶️🌶️ Inferno
-5. Нажми **🔥 Roast My Code!**
-6. Получи роаст + решение
-7. (Необязательно) Введи своё имя и нажми **Share** — код попадёт в **Hall of Shame**
+1. Go to **http://10.93.24.228**
+2. Select a programming language
+3. Paste your code
+4. Pick a spice level: 🌶️ Baby Spice / 🌶️🌶️ Code Salsa / 🌶️🌶️🌶️ Inferno
+5. Hit **🔥 Roast My Code!**
+6. Get your roast + solution
+7. (Optional) Enter your name and click **Share** — your roast appears in the **Hall of Shame**
 
-## Разделы сайта
+## Pages
 
-| Страница | Описание |
-|----------|----------|
-| 🏠 **Home** | Форма для отправки кода |
-| 🔥 **Recently Roasted** | Все опубликованные роасты (навсегда) |
-| 🏆 **Hall of Shame** | Топ роастов **за сегодня** — сбрасывается в полночь |
+| Page | Description |
+|------|-------------|
+| 🏠 **Home** | Code submission form |
+| 🔥 **Recently Roasted** | All published roasts (permanent) |
+| 🏆 **Hall of Shame** | Today's top roasts — resets at midnight |
 
-## Для разработчиков
+## For developers
 
-### Локальная разработка
+### Local development
 
 ```bash
-# 1. Запустить базу данных
+# 1. Start the database
 docker-compose up -d
 
-# 2. Бэкенд
+# 2. Backend
 cd backend
-cp .env.example .env   # вставь LLM_API_KEY
+cp .env.example .env   # add your LLM_API_KEY
 npm install
 npx prisma migrate dev
 npm run dev
 
-# 3. Фронтенд
+# 3. Frontend
 cd ../frontend
 cp .env.example .env
 npm install
 npm run dev
 ```
 
-Открой http://localhost:5173
+Open http://localhost:5173
 
-### Деплой на VM (10.93.24.228)
+### VM deployment (10.93.24.228)
 
 ```bash
 ssh user@10.93.24.228
@@ -62,7 +62,7 @@ ssh user@10.93.24.228
 git clone <repo-url> /opt/coderoast
 cd /opt/coderoast
 
-# Создать .env файлы
+# Create .env files
 cat > backend/.env << 'EOF'
 LLM_API_KEY=sk-or-v1-xxxxx
 DATABASE_URL=postgresql://coderoast:CHANGE_ME@postgres:5432/coderoast?schema=public
@@ -76,27 +76,27 @@ DB_USER=coderoast
 DB_PASSWORD=CHANGE_ME
 EOF
 
-# Запустить всё
+# Start everything
 docker-compose -f docker-compose.prod.yml up -d --build
 
-# Применить миграции
+# Apply migrations
 docker-compose -f docker-compose.prod.yml exec backend npx prisma migrate deploy
 ```
 
-Сайт будет доступен на http://10.93.24.228
+The site will be available at http://10.93.24.228
 
-## Технологии
+## Tech stack
 
 - **Frontend:** React 18 + TypeScript + TailwindCSS
 - **Backend:** Node.js + Express + TypeScript
 - **Database:** PostgreSQL + Prisma ORM
-- **AI:** OpenRouter (OpenAI-совместимый API, бесплатные модели)
+- **AI:** OpenRouter (OpenAI-compatible API, free models)
 
-## Ограничения
+## Limits
 
-- Максимум **5,000 символов** кода за один запрос
-- **10 запросов** за 15 минут с одного IP
-- **1 лайк** на одну запись с одного IP (сброс через 24 часа)
+- Maximum **5,000 characters** per submission
+- **10 submissions** per 15 minutes per IP
+- **1 like** per submission per IP (resets after 24 hours)
 
 ## License
 
