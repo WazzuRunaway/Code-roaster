@@ -207,7 +207,7 @@ export default function HomePage() {
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1 px-1">
             <span>{code.length.toLocaleString()} / {MAX_CODE_LENGTH.toLocaleString()} characters</span>
-            <span>{code.length > MAX_CODE_LENGTH * 0.9 ? '⚠️ Almost at limit' : ''}</span>
+            {code.length > MAX_CODE_LENGTH * 0.9 && <span>⚠️ Almost at limit</span>}
           </div>
         </div>
 

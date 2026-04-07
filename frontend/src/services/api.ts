@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import type { Submission, Comment, LikeResponse } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -11,10 +11,12 @@ const api = axios.create({
 // ─── Error Interceptor ──────────────────────────────────────────────
 api.interceptors.response.use(
   (res) => res,
-  (error) => {
+  (error: AxiosError<{ error?: string }>) => {
     const message = error.response?.data?.error || error.message || 'Unknown error';
-    console.error('API Error:', message);
-    return Promise.reject(new Error(message));
+    const status = error.response?.status;
+    const err = new Error(message);
+    (err as Error & { status?: number }).status = status;
+    return Promise.reject(err);
   }
 );
 

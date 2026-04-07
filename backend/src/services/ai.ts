@@ -155,7 +155,13 @@ function makeFallback(language: string, spiciness: string): RoastResult {
 }
 
 function parseRoastResponse(content: string): RoastResult {
-  const cleaned = content.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+  // Robust JSON extraction: find first { ... } block
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No JSON found in AI response');
+  }
+
+  const cleaned = jsonMatch[0].replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
   const parsed = JSON.parse(cleaned) as Partial<RoastResult>;
 
   if (!parsed.roast || !parsed.solution || typeof parsed.spaghettiScore !== 'number') {

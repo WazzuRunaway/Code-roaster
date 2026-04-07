@@ -188,7 +188,7 @@ export default function RecentlyRoastedPage() {
 
               {/* Comments Section */}
               {expandedId === sub.id && (
-                <div className="p-4 bg-gray-850 border-t border-gray-700 space-y-4">
+                <div className="p-4 bg-gray-800/50 border-t border-gray-700 space-y-4">
                   {comments[sub.id] === undefined ? (
                     <p className="text-gray-500 text-sm">Loading comments...</p>
                   ) : (comments[sub.id] || []).length > 0 ? (

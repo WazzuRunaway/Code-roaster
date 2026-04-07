@@ -1,17 +1,21 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import submissionRoutes from './routes/submissions';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') dotenv.config();
+
 const app = express();
+
+// ─── Security ───────────────────────────────────────────────────────
+app.use(helmet());
 
 // ─── CORS ───────────────────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173',
-  'http://10.93.24.228',
-  'http://10.93.24.228:5173',
   process.env.FRONTEND_URL,
 ].filter((v): v is string => Boolean(v));
 
@@ -33,22 +37,17 @@ app.use(cors({
 
 // ─── Rate Limiting ──────────────────────────────────────────────────
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-const submitLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10, // limit submissions to 10 per 15 min
-  message: { error: 'Too many submissions, please wait a bit.' },
-});
-
 app.use('/api', apiLimiter);
 
 // ─── Middleware ─────────────────────────────────────────────────────
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '1mb' }));
 
 // ─── Routes ─────────────────────────────────────────────────────────
@@ -68,6 +67,18 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// ─── Start ──────────────────────────────────────────────────────────
+// ─── Graceful Shutdown ──────────────────────────────────────────────
 const PORT = Number(process.env.PORT) || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`🔥 Server running on port ${PORT}`));
+const server = app.listen(PORT, '0.0.0.0', () => console.log(`🔥 Server running on port ${PORT}`));
+
+const shutdown = (signal: string) => {
+  console.log(`\n📴 ${signal} received — shutting down gracefully...`);
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
