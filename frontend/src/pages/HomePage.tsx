@@ -9,9 +9,9 @@ const languages = [
   'Shell', 'PowerShell', 'SQL', 'HTML/CSS', 'React',
 ];
 const spicinessLevels = [
-  { value: 'mild', label: '🌶️ Mild', desc: 'Gentle' },
-  { value: 'medium', label: '🌶️🌶️ Medium', desc: 'Balanced' },
-  { value: 'hot', label: '🌶️🌶️🌶️ Hot', desc: 'Savage' },
+  { value: 'mild', label: '🌶️ Baby Spice', desc: 'Gentle' },
+  { value: 'medium', label: '🌶️🌶️ Code Salsa', desc: 'Feeling it' },
+  { value: 'hot', label: '🌶️🌶️🌶️ Inferno', desc: 'Savage' },
 ];
 
 const funPlaceholders = [
@@ -127,29 +127,31 @@ export default function HomePage() {
 
           {/* Dropdown */}
           <div
-            className={`absolute z-10 w-full mt-1 rounded bg-gray-800 border border-gray-700 shadow-xl overflow-hidden transition-all duration-300 origin-top ${
+            className={`absolute z-10 w-full mt-1 rounded bg-gray-800 border border-gray-700 shadow-xl overflow-y-auto transition-all duration-300 origin-top custom-scrollbar ${
               isLangOpen
                 ? 'opacity-100 scale-y-100 max-h-60'
                 : 'opacity-0 scale-y-0 max-h-0 pointer-events-none'
             }`}
           >
-            {languages.map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                onClick={() => {
-                  setLanguage(lang);
-                  setIsLangOpen(false);
-                }}
-                className={`w-full text-left p-3 transition-colors duration-150 ${
-                  language === lang
-                    ? 'bg-orange-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                {lang}
-              </button>
-            ))}
+            <div className="py-1">
+              {languages.map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => {
+                    setLanguage(lang);
+                    setIsLangOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 transition-colors duration-150 ${
+                    language === lang
+                      ? 'bg-orange-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  {lang}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
