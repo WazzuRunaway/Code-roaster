@@ -70,14 +70,17 @@ NODE_ENV=production
 FRONTEND_URL=http://10.93.24.228
 EOF
 
-# Start everything
-docker compose -f docker-compose.prod.yml up -d --build
+# Start only the database first
+docker compose -f docker-compose.prod.yml up -d postgres
 
-# Run migrations (as root, then the backend will use them)
-docker compose exec backend npx prisma migrate deploy
+# Wait a few seconds, then run migrations
+docker compose -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy
+
+# Start all containers
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-Migrations must be run once after the first deployment. The site will be available at http://10.93.24.228
+The site will be available at http://10.93.24.228
 
 ## Tech stack
 

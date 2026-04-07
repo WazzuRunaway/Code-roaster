@@ -12,8 +12,8 @@ FROM node:20-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
-    addgroup --system appgroup && \
-    adduser --system --ingroup appgroup appuser
+    groupadd --system appgroup && \
+    useradd --system --gid appgroup appuser
 COPY package*.json ./
 RUN npm ci --only=production && npm install prisma@5.22.0
 COPY --from=builder /app/dist ./dist
