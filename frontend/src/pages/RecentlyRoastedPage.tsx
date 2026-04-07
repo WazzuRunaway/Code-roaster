@@ -15,7 +15,6 @@ export default function RecentlyRoastedPage() {
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
-  const [loadedComments, setLoadedComments] = useState<Set<string>>(new Set());
   const [commentForms, setCommentForms] = useState<Record<string, CommentFormState>>({});
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -49,15 +48,14 @@ export default function RecentlyRoastedPage() {
   }, [likedIds]);
 
   const loadComments = useCallback(async (id: string) => {
-    if (loadedComments.has(id)) return;
+    if (comments[id]) return;
     try {
       const data = await getComments(id);
       setComments((prev) => ({ ...prev, [id]: data }));
-      setLoadedComments((prev) => new Set(prev).add(id));
     } catch {
       // Silently fail
     }
-  }, [loadedComments]);
+  }, [comments]);
 
   const toggleExpand = useCallback(async (id: string) => {
     setExpandedId((prev) => {
@@ -183,7 +181,7 @@ export default function RecentlyRoastedPage() {
                     onClick={() => toggleExpand(sub.id)}
                     className="text-gray-400 hover:text-white font-medium"
                   >
-                    {expandedId === sub.id ? 'Hide comments ↑' : loadedComments.has(sub.id) ? `Comments (${(comments[sub.id] || []).length}) ↓` : 'Comments ↓'}
+                    {expandedId === sub.id ? 'Hide comments ↑' : `Comments (${(comments[sub.id] || []).length}) ↓`}
                   </button>
                 </div>
               </div>
@@ -191,7 +189,7 @@ export default function RecentlyRoastedPage() {
               {/* Comments Section */}
               {expandedId === sub.id && (
                 <div className="p-4 bg-gray-800/50 border-t border-gray-700 space-y-4">
-                  {!loadedComments.has(sub.id) ? (
+                  {comments[sub.id] === undefined ? (
                     <p className="text-gray-500 text-sm">Loading comments...</p>
                   ) : (comments[sub.id] || []).length > 0 ? (
                     <div className="space-y-2">
