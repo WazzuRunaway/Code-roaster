@@ -116,7 +116,7 @@ export default function HallOfShamePage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-4xl font-bold text-center mb-2">🏆 Hall of Shame</h1>
-      <p className="text-gray-400 text-center mb-8">Top 100 roasts, sorted by likes</p>
+      <p className="text-gray-400 text-center mb-8">Today's top roasts — resets at midnight</p>
 
       {submissions.length === 0 ? (
         <div className="text-center text-gray-500 mt-16">
