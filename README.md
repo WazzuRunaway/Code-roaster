@@ -71,10 +71,13 @@ FRONTEND_URL=http://10.93.24.228
 EOF
 
 # Start everything
-docker-compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build
+
+# Run migrations (as root, then the backend will use them)
+docker compose exec backend npx prisma migrate deploy
 ```
 
-Migrations run automatically on container startup. The site will be available at http://10.93.24.228
+Migrations must be run once after the first deployment. The site will be available at http://10.93.24.228
 
 ## Tech stack
 
