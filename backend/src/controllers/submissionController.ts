@@ -202,7 +202,7 @@ export const addComment = asyncHandler(async (req, res) => {
 
 export const getRecentlyRoasted = asyncHandler(async (_req, res) => {
   const submissions = await prisma.submission.findMany({
-    where: {},
+    where: { isPublic: true },
     orderBy: { createdAt: 'desc' },
     take: 100,
     select: PUBLIC_SUBMISSION_SELECT,
@@ -212,7 +212,7 @@ export const getRecentlyRoasted = asyncHandler(async (_req, res) => {
 
 export const getHallOfShame = asyncHandler(async (_req, res) => {
   const submissions = await prisma.submission.findMany({
-    where: {},
+    where: { isPublic: true },
     orderBy: { likes: 'desc' },
     take: 100,
     select: PUBLIC_SUBMISSION_SELECT,
