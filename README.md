@@ -65,15 +65,9 @@ cd /opt/coderoast
 # Create .env files
 cat > backend/.env << 'EOF'
 LLM_API_KEY=sk-or-v1-xxxxx
-DATABASE_URL=postgresql://coderoast:CHANGE_ME@postgres:5432/coderoast?schema=public
 PORT=3000
 NODE_ENV=production
 FRONTEND_URL=http://10.93.24.228
-EOF
-
-cat > .env.prod << EOF
-DB_USER=coderoast
-DB_PASSWORD=CHANGE_ME
 EOF
 
 # Start everything

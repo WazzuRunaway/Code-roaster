@@ -4,8 +4,8 @@ services:
     image: postgres:15-alpine
     container_name: coderoast-db
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: coderoast
+      POSTGRES_PASSWORD: CodeRoast2025!
       POSTGRES_DB: coderoast
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -21,7 +21,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/coderoast?schema=public
+      - DATABASE_URL=postgresql://coderoast:CodeRoast2025!@postgres:5432/coderoast?schema=public
       - NODE_ENV=production
     ports:
       - "3000:3000"
