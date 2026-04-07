@@ -56,6 +56,12 @@ const PUBLIC_SUBMISSION_SELECT = {
   isPublic: true, likes: true, createdAt: true, updatedAt: true,
 };
 
+const LIST_SUBMISSION_SELECT = {
+  id: true, code: true, language: true, roast: true,
+  spiciness: true, spaghettiScore: true, authorName: true,
+  isPublic: true, likes: true, createdAt: true, updatedAt: true,
+};
+
 // ─── Controllers ────────────────────────────────────────────────────
 export const submitCode = asyncHandler(async (req, res) => {
   const { code, language, spiciness } = req.body;
