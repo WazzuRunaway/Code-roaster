@@ -4,7 +4,8 @@ import { generateRoast } from '../services/ai';
 import { prisma } from '../utils/prisma';
 
 // ─── Constants ──────────────────────────────────────────────────────
-const MAX_CODE_LENGTH = 50_000;
+const MAX_CODE_LENGTH = 5_000;
+const SOFT_CODE_WARNING = 3_000;
 const MAX_NAME_LENGTH = 50;
 const MAX_COMMENT_LENGTH = 500;
 const ALLOWED_LANGUAGES = new Set([

@@ -37,7 +37,8 @@ const funPlaceholders = [
   '// Code so clever even you don\'t get it?\n// Let\'s fix that.',
 ];
 
-const MAX_CODE_LENGTH = 50000;
+const MAX_CODE_LENGTH = 5000;
+const SOFT_CODE_WARNING = 3000;
 
 export default function HomePage() {
   const [code, setCode] = useState('');
@@ -84,8 +85,13 @@ export default function HomePage() {
     setError('');
 
     if (code.length > MAX_CODE_LENGTH) {
-      setError('Code is too long (max 50KB)');
+      setError(`Code is too long (max ${MAX_CODE_LENGTH.toLocaleString()} chars)`);
       return;
+    }
+    if (code.length > SOFT_CODE_WARNING) {
+      setError(`Code is quite long (${code.length.toLocaleString()} chars). This may use a lot of AI credits. Consider submitting a shorter snippet.`);
+    } else {
+      setError('');
     }
 
     setLoading(true);
@@ -205,9 +211,11 @@ export default function HomePage() {
             className="w-full h-64 p-4 rounded bg-gray-800 border border-gray-700 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
             required
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1 px-1">
-            <span>{code.length.toLocaleString()} / {MAX_CODE_LENGTH.toLocaleString()} characters</span>
-            {code.length > MAX_CODE_LENGTH * 0.9 && <span>⚠️ Almost at limit</span>}
+          <div className="flex justify-between text-xs mt-1 px-1">
+            <span className="text-gray-500">{code.length.toLocaleString()} / {MAX_CODE_LENGTH.toLocaleString()} characters</span>
+            {code.length > SOFT_CODE_WARNING && (
+              <span className="text-orange-400">⚠️ Large code — uses more AI credits</span>
+            )}
           </div>
         </div>
 
