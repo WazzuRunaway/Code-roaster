@@ -15,7 +15,8 @@
       "Bash(ollama *)",
       "Bash(findstr *)",
       "Bash(mkdir *)",
-      "Bash(start *)"
+      "Bash(start *)",
+      "Bash(do *)"
     ]
   },
   "$version": 3
