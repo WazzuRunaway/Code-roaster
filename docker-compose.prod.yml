@@ -26,13 +26,7 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      postgres:
-        condition: service_started
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - postgres
     networks:
       - coderoast-net
     restart: unless-stopped
@@ -47,8 +41,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     networks:
       - coderoast-net
     restart: unless-stopped
