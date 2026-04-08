@@ -20,7 +20,9 @@ services:
     environment:
       DATABASE_URL: postgresql://coderoast:coderoast_password@postgres:5432/coderoast?schema=public
       NODE_ENV: production
-      LLM_API_KEY: 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
+      LLM_API_KEY: sk-5LKzZCe3jKapj-dXfowJXw
+      LLM_URL: https://api.artemox.com
+      LLM_MODEL: deepseek-chat
     ports:
       - "3000:3000"
     depends_on:
