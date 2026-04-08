@@ -16,7 +16,8 @@
       "Bash(findstr *)",
       "Bash(mkdir *)",
       "Bash(start *)",
-      "Bash(do *)"
+      "Bash(do *)",
+      "Bash(git push *)"
     ]
   },
   "$version": 3

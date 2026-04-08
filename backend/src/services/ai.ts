@@ -217,6 +217,7 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
       }
 
       const { client, model } = clientConfig;
+      console.log(`🤖 AI request to ${model} (attempt ${attempt}/${MAX_RETRIES})`);
       const response = await client.chat.completions.create({
         model,
         messages: [{ role: 'user', content: prompt }],
@@ -226,22 +227,23 @@ Respond in EXACTLY this JSON format (no extra text, no markdown wrapping):
       const content = response.choices[0]?.message?.content;
       if (!content) throw new Error('Empty response from AI');
 
+      console.log(`✅ AI responded, ${content.length} chars`);
       return parseRoastResponse(content);
     } catch (err: any) {
       const isLastAttempt = attempt === MAX_RETRIES;
       const isParseError = err.message.includes('JSON') || err.message.includes('Invalid response');
 
       if (isLastAttempt) {
-        console.warn(`LLM failed after ${MAX_RETRIES} attempts (${PROVIDER}), using fallback:`, err.message);
+        console.error(`❌ AI FAILED: status=${err.status} message=${err.message}`);
         return makeFallback(language, spiciness);
       }
 
       if (isParseError) {
-        console.warn('AI returned unparseable response, using fallback');
+        console.warn('AI unparseable response, fallback');
         return makeFallback(language, spiciness);
       }
 
-      console.warn(`LLM attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${3 * attempt}s... (${err.message})`);
+      console.warn(`⏳ Retry ${attempt}/${MAX_RETRIES} in ${3 * attempt}s... status=${err.status} ${err.message}`);
       await new Promise((r) => setTimeout(r, 3000 * attempt));
     }
   }
