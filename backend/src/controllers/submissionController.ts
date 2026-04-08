@@ -211,9 +211,17 @@ export const getRecentlyRoasted = asyncHandler(async (_req, res) => {
 });
 
 export const getHallOfShame = asyncHandler(async (_req, res) => {
-  // Only today's submissions — resets at midnight UTC
-  const startOfToday = new Date();
-  startOfToday.setUTCHours(0, 0, 0, 0);
+  // Only today's submissions — resets at midnight Moscow time (UTC+3)
+  const now = new Date();
+  const moscowOffset = 3 * 60; // UTC+3 in minutes
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const moscowTime = new Date(utcMs + moscowOffset * 60000);
+  const startOfToday = new Date(Date.UTC(
+    moscowTime.getUTCFullYear(),
+    moscowTime.getUTCMonth(),
+    moscowTime.getUTCDate(),
+    0, 0, 0, 0
+  ));
 
   const submissions = await prisma.submission.findMany({
     where: {
